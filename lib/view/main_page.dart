@@ -1,15 +1,19 @@
+import 'package:flashcard_app/model/user.dart';
+import 'package:flashcard_app/view/create_account_page.dart';
 import 'package:flutter/material.dart';
 
-class main_page extends StatefulWidget {
-  const main_page({super.key});
+class MainPage extends StatefulWidget {
+  const MainPage({super.key});
 
   @override
-  State<main_page> createState() => _main_pageState();
+  State<MainPage> createState() => _MainPageState();
 }
 
-class _main_pageState extends State<main_page> {
+class _MainPageState extends State<MainPage> {
+  final User _user = User.empty();
+
   int _selectedIndex = 0;
-  String _name = "";
+  String get name => _user.name;
 
   final List<Widget> _pages = [
     Center(
@@ -24,6 +28,8 @@ class _main_pageState extends State<main_page> {
   ];
 
   void _showLoginDialog(BuildContext context) {
+    final formKey = GlobalKey<FormState>();
+
     final TextEditingController nameController = TextEditingController();
     final TextEditingController passwordController = TextEditingController();
 
@@ -34,64 +40,148 @@ class _main_pageState extends State<main_page> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10.0),
           ),
-          title: const Text("Login Necessário"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              const Text("Para criar uma coleção, você precisa fazer o login."),
-              const SizedBox(height: 16),
-              TextField(
-                cursorColor: Colors.black,
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nome',
-                  floatingLabelStyle: TextStyle(color: Colors.black),
-                  enabledBorder: OutlineInputBorder(),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.black),
+          title: const Text(
+            "Login Necessário",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                const Text(
+                  "Para criar uma coleção, você precisa fazer o login.",
+                  style: TextStyle(fontSize: 12),
+                ),
+                const SizedBox(height: 5),
+                SizedBox(
+                  height: 30,
+                  child: TextFormField(
+                    cursorColor: Colors.black,
+                    style: TextStyle(fontSize: 11),
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      labelStyle: TextStyle(fontSize: 11),
+                      floatingLabelStyle: TextStyle(
+                        color: Colors.black,
+                        fontSize: 12,
+                      ),
+                      enabledBorder: OutlineInputBorder(),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.red),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.red),
+                      ),
+                      errorStyle: TextStyle(fontSize: 0),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return " ";
+                      }
+
+                      return null;
+                    },
                   ),
                 ),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                cursorColor: Colors.black,
-                controller: passwordController,
-                decoration: const InputDecoration(
-                  labelText: 'Senha',
-                  floatingLabelStyle: TextStyle(color: Colors.black),
-                  enabledBorder: OutlineInputBorder(),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.black),
+                const SizedBox(height: 5),
+                SizedBox(
+                  height: 30,
+                  child: TextFormField(
+                    cursorColor: Colors.black,
+                    style: TextStyle(fontSize: 11),
+                    controller: passwordController,
+                    decoration: const InputDecoration(
+                      labelText: 'Senha',
+                      labelStyle: TextStyle(fontSize: 11),
+                      floatingLabelStyle: TextStyle(
+                        color: Colors.black,
+                        fontSize: 12,
+                      ),
+                      enabledBorder: OutlineInputBorder(),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.red),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.red),
+                      ),
+                      errorStyle: TextStyle(fontSize: 0),
+                    ),
+                    obscureText: true,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return " ";
+                      }
+
+                      return null;
+                    },
                   ),
                 ),
-                obscureText: true, // Hides the password
-              ),
-            ],
+              ],
+            ),
           ),
           actions: <Widget>[
-            TextButton(
-              child: const Text(
-                "CANCELAR",
-                style: TextStyle(color: Colors.black),
-              ),
-              onPressed: () {
-                // Closes the dialog
-                Navigator.of(context).pop();
-              },
-            ),
-            ElevatedButton(
-              child: const Text(
-                "ENTRAR",
-                style: TextStyle(color: Colors.black),
-              ),
-              onPressed: () {
-                setState(() {
-                  _name = nameController.text.trim();
+            Column(
+              children: [
+                Row(
+                  children: [
+                    TextButton(
+                      child: const Text(
+                        "CANCELAR",
+                        style: TextStyle(color: Colors.black, fontSize: 10),
+                      ),
+                      onPressed: () {
+                        // Closes the dialog
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                    ElevatedButton(
+                      child: const Text(
+                        "ENTRAR",
+                        style: TextStyle(color: Colors.black, fontSize: 10),
+                      ),
+                      onPressed: () {
+                        if (formKey.currentState!.validate()) {
+                          Navigator.of(context).pop();
+                        }
+                      },
+                    ),
+                  ],
+                ),
+                SizedBox(height: 5),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      shape: ContinuousRectangleBorder(),
+                      backgroundColor: Colors.black,
+                    ),
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CreateAccountPage(user: _user),
+                        ),
+                      );
 
-                  Navigator.of(context).pop();
-                });
-              },
+                      setState(() {});
+
+                      Navigator.of(context).pop();
+                    },
+                    child: Text(
+                      "Criar conta",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         );
@@ -110,9 +200,9 @@ class _main_pageState extends State<main_page> {
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white, fontSize: 25),
             ),
-            _name.isNotEmpty
+            _user.name.isNotEmpty
                 ? Text(
-                    'Olá, $_name!',
+                    'Olá, $name!',
                     style: const TextStyle(fontSize: 15, color: Colors.white),
                   )
                 : const SizedBox.shrink(),
