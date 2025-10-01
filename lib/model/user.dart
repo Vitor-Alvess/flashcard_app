@@ -43,4 +43,8 @@ class User {
   set password(String password) {
     _password = password;
   }
+
+  bool get isLoggedIn {
+    return _name.isNotEmpty && _email.isNotEmpty;
+  }
 }
