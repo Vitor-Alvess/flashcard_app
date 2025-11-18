@@ -1,5 +1,7 @@
+import 'package:flashcard_app/bloc/auth_bloc.dart';
 import 'package:flashcard_app/model/user.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class CreateAccountPage extends StatefulWidget {
   final User user;
@@ -37,12 +39,18 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
       widget.user.name = _nameController.text.trim();
       widget.user.email = _emailController.text.trim();
       widget.user.age = int.tryParse(_ageController.text) ?? 0;
-      widget.user.password = _passwordController.text.trim();
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Conta criada com sucesso!'),
           backgroundColor: Colors.green,
+        ),
+      );
+
+      BlocProvider.of<AuthBloc>(context).add(
+        RegisterUser(
+          username: widget.user.email,
+          password: _passwordController.text.trim(),
         ),
       );
 
