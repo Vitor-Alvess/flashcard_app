@@ -1,37 +1,19 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
-import 'package:firebase_core/firebase_core.dart' show Firebase;
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   AuthBloc() : super(Unauthenticated()) {
-    fb_auth.FirebaseAuth? auth;
-    try {
-      // Only access FirebaseAuth if a Firebase app exists and plugins are
-      // available. Accessing FirebaseAuth.instance can throw if Firebase
-      // hasn't been properly initialized on this platform.
-      if (Firebase.apps.isNotEmpty) {
-        auth = fb_auth.FirebaseAuth.instance;
-        auth.authStateChanges().listen((fb_auth.User? user) {
-          if (user == null) {
-            add(AuthServerEvent(username: null));
-          } else {
-            add(AuthServerEvent(username: user.email));
-          }
-        });
+    FirebaseAuth auth = FirebaseAuth.instance;
+
+    FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      if (user == null) {
+        add(AuthServerEvent(username: null));
+      } else {
+        add(AuthServerEvent(username: user.email));
       }
-    } catch (e) {
-      // If Firebase isn't available, the bloc will still operate but auth
-      // related operations will return errors when attempted.
-      print('AuthBloc: FirebaseAuth not available: $e');
-      auth = null;
-    }
-    ;
+    });
 
     on<RegisterUser>((event, emit) async {
-      if (auth == null) {
-        emit(AuthError(message: 'FirebaseAuth not initialized'));
-        return;
-      }
       try {
         await auth.createUserWithEmailAndPassword(
           email: event.username,
@@ -43,10 +25,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     });
 
     on<LoginUser>((event, emit) async {
-      if (auth == null) {
-        emit(AuthError(message: 'FirebaseAuth not initialized'));
-        return;
-      }
       try {
         await auth.signInWithEmailAndPassword(
           email: event.username,
@@ -58,7 +36,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     });
 
     on<Logout>((event, emit) {
-      auth?.signOut();
+      auth.signOut();
     });
 
     on<AuthServerEvent>((event, emit) {
