@@ -37,22 +37,25 @@ class _StudyPageState extends State<StudyPage> {
 
   void _prepareMultipleChoiceOptions() {
     if (widget.mode == StudyMode.multipleChoice) {
+      final random = Random();
       for (var question in _shuffledQuestions) {
         if (question.multipleChoiceOptions != null) {
-          // Use personalized options
-          _multipleChoiceOptions[question.id] = List<String>.from(
+          // Use personalized options and shuffle them
+          List<String> options = List<String>.from(
             question.multipleChoiceOptions!,
           );
+          options.shuffle(random);
+          _multipleChoiceOptions[question.id] = options;
         } else {
           // Mix answers from all questions
           List<String> allAnswers = widget.collection.questions
               .map((q) => q.answer)
               .where((answer) => answer != question.answer)
               .toList();
-          allAnswers.shuffle(Random());
+          allAnswers.shuffle(random);
           List<String> options = [question.answer];
           options.addAll(allAnswers.take(3));
-          options.shuffle(Random());
+          options.shuffle(random);
           _multipleChoiceOptions[question.id] = options;
         }
       }
