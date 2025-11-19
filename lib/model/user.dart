@@ -3,18 +3,26 @@ class User {
   String _email;
   int _age;
   String _password;
+  String? _profilePicturePath;
 
-  User.empty() : _name = '', _email = '', _age = 0, _password = '';
+  User.empty()
+    : _name = '',
+      _email = '',
+      _age = 0,
+      _password = '',
+      _profilePicturePath = null;
 
   User({
     required String name,
     required String email,
     required int age,
     required String password,
+    String? profilePicturePath,
   }) : _name = name,
        _email = email,
        _age = age,
-       _password = password;
+       _password = password,
+       _profilePicturePath = profilePicturePath;
 
   String get name {
     return _name;
@@ -42,6 +50,12 @@ class User {
 
   set password(String password) {
     _password = password;
+  }
+
+  String? get profilePicturePath => _profilePicturePath;
+
+  set profilePicturePath(String? path) {
+    _profilePicturePath = path;
   }
 
   bool get isLoggedIn {
