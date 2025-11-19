@@ -8,9 +8,9 @@ class FirestoreUserProvider {
   final CollectionReference userCollection = FirebaseFirestore.instance
       .collection("users");
 
-  String usersDocRef = "usuarios";
+  String usersDocRef = "default";
 
-  insertUser(User user) {
+  dynamic insertUser(User user) {
     userCollection.doc(usersDocRef).collection("users").add(user.toMap());
   }
 
