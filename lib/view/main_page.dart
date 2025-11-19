@@ -1244,6 +1244,7 @@ class _MainPageState extends State<MainPage> {
             Column(
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     TextButton(
                       child: const Text(
@@ -1254,20 +1255,33 @@ class _MainPageState extends State<MainPage> {
                         Navigator.of(context).pop();
                       },
                     ),
-                    ElevatedButton(
-                      child: const Text(
-                        "ENTRAR",
-                        style: TextStyle(color: Colors.black, fontSize: 10),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: ElevatedButton(
+                          child: const Text(
+                            "Criar conta",
+                            style: TextStyle(color: Colors.black, fontSize: 10),
+                          ),
+                          onPressed: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    CreateAccountPage(user: _user),
+                              ),
+                            );
+
+                            setState(() {});
+
+                            Navigator.of(context).pop();
+                          },
+                        ),
                       ),
-                      onPressed: () {
-                        if (formKey.currentState!.validate()) {
-                          Navigator.of(context).pop();
-                        }
-                      },
                     ),
                   ],
                 ),
-                SizedBox(height: 5),
+                const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -1275,20 +1289,13 @@ class _MainPageState extends State<MainPage> {
                       shape: ContinuousRectangleBorder(),
                       backgroundColor: Colors.black,
                     ),
-                    onPressed: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CreateAccountPage(user: _user),
-                        ),
-                      );
-
-                      setState(() {});
-
-                      Navigator.of(context).pop();
+                    onPressed: () {
+                      if (formKey.currentState!.validate()) {
+                        Navigator.of(context).pop();
+                      }
                     },
-                    child: Text(
-                      "Criar conta",
+                    child: const Text(
+                      "ENTRAR",
                       style: TextStyle(color: Colors.white),
                     ),
                   ),
