@@ -1,5 +1,8 @@
+import 'package:flashcard_app/bloc/auth_bloc.dart';
 import 'package:flashcard_app/model/user.dart';
+import 'package:flashcard_app/provider/firestore_user_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -41,7 +44,6 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
       widget.user.name = _nameController.text.trim();
       widget.user.email = _emailController.text.trim();
       widget.user.age = int.tryParse(_ageController.text) ?? 0;
-      widget.user.password = _passwordController.text.trim();
       // Vincular foto de perfil à conta
       widget.user.profilePicturePath = _selectedImagePath;
 
@@ -51,6 +53,15 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
           backgroundColor: Colors.green,
         ),
       );
+
+      BlocProvider.of<AuthBloc>(context).add(
+        RegisterUser(
+          username: widget.user.email,
+          password: _passwordController.text.trim(),
+        ),
+      );
+
+      FirestoreUserProvider.helper.insertUser(widget.user);
 
       Navigator.pop(context);
     } else {
@@ -108,10 +119,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                           decoration: BoxDecoration(
                             color: Colors.grey[300],
                             shape: BoxShape.circle,
-                            border: Border.all(
-                              color: primaryColor,
-                              width: 3,
-                            ),
+                            border: Border.all(color: primaryColor, width: 3),
                           ),
                           child: _selectedImagePath != null
                               ? ClipOval(
@@ -123,12 +131,12 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                                           fit: BoxFit.cover,
                                           errorBuilder:
                                               (context, error, stackTrace) {
-                                            return Icon(
-                                              Icons.person,
-                                              size: 60,
-                                              color: Colors.grey[600],
-                                            );
-                                          },
+                                                return Icon(
+                                                  Icons.person,
+                                                  size: 60,
+                                                  color: Colors.grey[600],
+                                                );
+                                              },
                                         )
                                       : Image.file(
                                           File(_selectedImagePath!),
@@ -137,12 +145,12 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                                           fit: BoxFit.cover,
                                           errorBuilder:
                                               (context, error, stackTrace) {
-                                            return Icon(
-                                              Icons.person,
-                                              size: 60,
-                                              color: Colors.grey[600],
-                                            );
-                                          },
+                                                return Icon(
+                                                  Icons.person,
+                                                  size: 60,
+                                                  color: Colors.grey[600],
+                                                );
+                                              },
                                         ),
                                 )
                               : Icon(
@@ -184,10 +192,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                     _selectedImagePath != null
                         ? 'Toque para alterar a foto'
                         : 'Toque para adicionar foto de perfil',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
                   ),
                 ),
                 const SizedBox(height: 16.0),

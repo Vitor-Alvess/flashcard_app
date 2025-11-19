@@ -2,27 +2,22 @@ class User {
   String _name;
   String _email;
   int _age;
-  String _password;
   String? _profilePicturePath;
 
-  User.empty()
-    : _name = '',
-      _email = '',
-      _age = 0,
-      _password = '',
-      _profilePicturePath = null;
+  User.empty() : _name = '', _email = '', _age = 0;
 
-  User({
-    required String name,
-    required String email,
-    required int age,
-    required String password,
-    String? profilePicturePath,
-  }) : _name = name,
-       _email = email,
-       _age = age,
-       _password = password,
-       _profilePicturePath = profilePicturePath;
+  User({required String name, required String email, required int age})
+    : _name = name,
+      _email = email,
+      _age = age;
+
+  factory User.fromMap(Map map) {
+    return User(name: map["name"], email: map["email"], age: map["age"]);
+  }
+
+  dynamic toMap() {
+    return {"name": name, "email": email, "age": age};
+  }
 
   String get name {
     return _name;
@@ -46,10 +41,6 @@ class User {
 
   set age(int age) {
     _age = age;
-  }
-
-  set password(String password) {
-    _password = password;
   }
 
   String? get profilePicturePath => _profilePicturePath;

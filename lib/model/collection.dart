@@ -1,12 +1,13 @@
+import 'package:flashcard_app/model/flashcard.dart';
 import 'package:flutter/material.dart';
-import 'package:flashcard_app/model/question.dart';
 
 class Collection {
   String _id;
   String _name;
   Color _color;
   DateTime _createdAt;
-  List<Question> _questions;
+  int _flashcardCount;
+  List<Flashcard> _flashcards;
   String? _imagePath;
 
   Collection({
@@ -14,21 +15,23 @@ class Collection {
     required String name,
     required Color color,
     DateTime? createdAt,
-    List<Question>? questions,
-    String? imagePath,
+    int flashcardCount = 0,
+    required List<Flashcard> flashcards,
+    required String? imagePath,
   }) : _id = id,
        _name = name,
        _color = color,
        _createdAt = createdAt ?? DateTime.now(),
-       _questions = questions ?? [],
+       _flashcardCount = flashcardCount,
+       _flashcards = flashcards,
        _imagePath = imagePath;
 
   String get id => _id;
   String get name => _name;
   Color get color => _color;
   DateTime get createdAt => _createdAt;
-  List<Question> get questions => _questions;
-  int get flashcardCount => _questions.length;
+  List<Flashcard> get flashcards => _flashcards;
+  int get flashcardCount => _flashcards.length;
   String? get imagePath => _imagePath;
 
   set name(String name) {
@@ -43,37 +46,42 @@ class Collection {
     _imagePath = path;
   }
 
-  void addQuestion(Question question) {
-    _questions.add(question);
+  void addQuestion(Flashcard question) {
+    _flashcards.add(question);
   }
 
   void removeQuestion(String questionId) {
-    _questions.removeWhere((q) => q.id == questionId);
+    _flashcards.removeWhere((q) => q.id == questionId);
   }
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toMap() {
     return {
       'id': _id,
       'name': _name,
-      'color': _color.value,
+      'color': _color.toARGB32(),
       'createdAt': _createdAt.toIso8601String(),
-      'questions': _questions.map((q) => q.toJson()).toList(),
+      'flashcards': _flashcards
+          .map((f) => {'question': f.question, 'answer': f.answer})
+          .toList(),
       'imagePath': _imagePath,
     };
   }
 
-  factory Collection.fromJson(Map<String, dynamic> json) {
+  factory Collection.fromMap(Map<String, dynamic> map) {
+    final flashcardsList = map['flashcards'];
+    List<Flashcard> parsedFlashcards = [];
+
     return Collection(
-      id: json['id'],
-      name: json['name'],
-      color: Color(json['color']),
-      createdAt: DateTime.parse(json['createdAt']),
-      questions:
-          (json['questions'] as List<dynamic>?)
-              ?.map((q) => Question.fromJson(q))
+      id: map['id'],
+      name: map['name'],
+      color: Color(map['color']),
+      createdAt: DateTime.parse(map['createdAt']),
+      flashcards:
+          (map['flashcards'] as List<dynamic>?)
+              ?.map((q) => Flashcard.fromMap(q))
               .toList() ??
           [],
-      imagePath: json['imagePath'],
+      imagePath: map['imagePath'],
     );
   }
 }

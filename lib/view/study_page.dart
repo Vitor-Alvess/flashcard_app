@@ -1,5 +1,5 @@
 import 'package:flashcard_app/model/collection.dart';
-import 'package:flashcard_app/model/question.dart';
+import 'package:flashcard_app/model/flashcard.dart';
 import 'package:flashcard_app/view/results_page.dart';
 import 'package:flutter/material.dart';
 import 'dart:math';
@@ -21,7 +21,7 @@ class _StudyPageState extends State<StudyPage> {
   bool _showAnswer = false;
   String? _selectedAnswer;
   final TextEditingController _answerController = TextEditingController();
-  List<Question> _shuffledQuestions = [];
+  List<Flashcard> _shuffledQuestions = [];
   Map<String, List<String>> _multipleChoiceOptions = {};
   int _correctAnswers = 0;
   Map<String, bool> _questionResults =
@@ -31,7 +31,7 @@ class _StudyPageState extends State<StudyPage> {
   @override
   void initState() {
     super.initState();
-    _shuffledQuestions = List<Question>.from(widget.collection.questions);
+    _shuffledQuestions = List<Flashcard>.from(widget.collection.flashcards);
     _shuffledQuestions.shuffle(Random());
     _prepareMultipleChoiceOptions();
   }
@@ -49,7 +49,7 @@ class _StudyPageState extends State<StudyPage> {
           _multipleChoiceOptions[question.id] = options;
         } else {
           // Mix answers from all questions
-          List<String> allAnswers = widget.collection.questions
+          List<String> allAnswers = widget.collection.flashcards
               .map((q) => q.answer)
               .where((answer) => answer != question.answer)
               .toList();
@@ -241,16 +241,14 @@ class _StudyPageState extends State<StudyPage> {
 
   Widget _buildWrittenMode() {
     final isCorrect = _selectedAnswer == "correct";
-    
+
     return Column(
       children: [
         AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
           width: double.infinity,
-          constraints: const BoxConstraints(
-            minHeight: 80,
-          ),
+          constraints: const BoxConstraints(minHeight: 80),
           padding: const EdgeInsets.all(16.0),
           decoration: BoxDecoration(
             color: _showAnswer
@@ -273,7 +271,10 @@ class _StudyPageState extends State<StudyPage> {
                     const SizedBox(height: 8),
                     Text(
                       "Resposta correta: ${_shuffledQuestions[_currentIndex].answer}",
-                      style: const TextStyle(fontSize: 14, color: Colors.black87),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black87,
+                      ),
                     ),
                   ],
                 )
@@ -313,7 +314,7 @@ class _StudyPageState extends State<StudyPage> {
     );
   }
 
-  Widget _buildMultipleChoiceMode(Question question) {
+  Widget _buildMultipleChoiceMode(Flashcard question) {
     final options = _multipleChoiceOptions[question.id] ?? [];
     final correctAnswer = question.answer;
 
@@ -322,7 +323,7 @@ class _StudyPageState extends State<StudyPage> {
         ...options.map((option) {
           final isCorrect = option == correctAnswer;
           final isSelected = _selectedAnswer == option;
-          
+
           return GestureDetector(
             onTap: _showAnswer
                 ? null
@@ -336,17 +337,18 @@ class _StudyPageState extends State<StudyPage> {
               curve: Curves.easeInOut,
               margin: const EdgeInsets.only(bottom: 12),
               width: double.infinity,
-              constraints: const BoxConstraints(
-                minHeight: 60,
+              constraints: const BoxConstraints(minHeight: 60),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 16.0,
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
               decoration: BoxDecoration(
                 color: _showAnswer
                     ? (isCorrect
-                        ? Colors.green[100]
-                        : (isSelected && !isCorrect)
-                            ? Colors.red[100]
-                            : Colors.grey[200])
+                          ? Colors.green[100]
+                          : (isSelected && !isCorrect)
+                          ? Colors.red[100]
+                          : Colors.grey[200])
                     : Colors.grey[800],
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
@@ -364,11 +366,13 @@ class _StudyPageState extends State<StudyPage> {
                     child: Radio<String>(
                       value: option,
                       groupValue: _selectedAnswer,
-                      onChanged: _showAnswer ? null : (value) {
-                        setState(() {
-                          _selectedAnswer = value;
-                        });
-                      },
+                      onChanged: _showAnswer
+                          ? null
+                          : (value) {
+                              setState(() {
+                                _selectedAnswer = value;
+                              });
+                            },
                       activeColor: _showAnswer
                           ? (isCorrect ? Colors.green : Colors.grey)
                           : Colors.white,

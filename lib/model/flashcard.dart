@@ -1,11 +1,11 @@
-class Question {
+class Flashcard {
   String _id;
   String _question;
   String _answer;
   bool _caseSensitive;
   List<String>? _multipleChoiceOptions;
 
-  Question({
+  Flashcard({
     required String id,
     required String question,
     required String answer,
@@ -49,8 +49,8 @@ class Question {
     };
   }
 
-  factory Question.fromJson(Map<String, dynamic> json) {
-    return Question(
+  factory Flashcard.fromJson(Map<String, dynamic> json) {
+    return Flashcard(
       id: json['id'],
       question: json['question'],
       answer: json['answer'],
@@ -61,4 +61,3 @@ class Question {
     );
   }
 }
-

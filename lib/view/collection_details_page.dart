@@ -1,5 +1,5 @@
 import 'package:flashcard_app/model/collection.dart';
-import 'package:flashcard_app/model/question.dart';
+import 'package:flashcard_app/model/flashcard.dart';
 import 'package:flashcard_app/model/user.dart';
 import 'package:flashcard_app/view/study_page.dart';
 import 'package:flutter/material.dart';
@@ -24,13 +24,12 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
   @override
   void initState() {
     super.initState();
-    // Create a new instance to avoid reference issues
     _collection = Collection(
       id: widget.collection.id,
       name: widget.collection.name,
       color: widget.collection.color,
       createdAt: widget.collection.createdAt,
-      questions: List<Question>.from(widget.collection.questions),
+      flashcards: List<Flashcard>.from(widget.collection.flashcards),
       imagePath: widget.collection.imagePath,
     );
   }
@@ -166,7 +165,7 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
                   ),
                   onPressed: () {
                     if (formKey.currentState!.validate()) {
-                      final newQuestion = Question(
+                      final newQuestion = Flashcard(
                         id: DateTime.now().millisecondsSinceEpoch.toString(),
                         question: questionController.text,
                         answer: answerController.text,
@@ -278,7 +277,7 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
               onPressed: () {
                 Navigator.of(context).pop();
                 // Check if there are at least 4 questions when accepting default
-                if (_collection.questions.length < 4) {
+                if (_collection.flashcards.length < 4) {
                   showDialog(
                     context: context,
                     builder: (BuildContext context) {
@@ -288,7 +287,7 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
                         ),
                         title: const Text("Aviso"),
                         content: Text(
-                          "Para usar o modo de múltipla escolha com alternativas sorteadas, é necessário ter pelo menos 4 perguntas na coleção.\n\nVocê tem ${_collection.questions.length} pergunta(s).\n\nDeseja personalizar as alternativas?",
+                          "Para usar o modo de múltipla escolha com alternativas sorteadas, é necessário ter pelo menos 4 perguntas na coleção.\n\nVocê tem ${_collection.flashcards.length} pergunta(s).\n\nDeseja personalizar as alternativas?",
                         ),
                         actions: [
                           TextButton(
@@ -341,8 +340,8 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
   void _showCustomizeOptionsDialog() {
     int currentQuestionIndex = 0;
     final List<TextEditingController> optionControllers = [];
-    final List<Question> questionsToCustomize = List.from(
-      _collection.questions,
+    final List<Flashcard> questionsToCustomize = List.from(
+      _collection.flashcards,
     );
 
     // Initialize controllers for first question
@@ -515,11 +514,13 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
                       // Save all and start study
                       this.setState(() {
                         for (int i = 0; i < questionsToCustomize.length; i++) {
-                          final index = _collection.questions.indexWhere(
+                          final index = _collection.flashcards.indexWhere(
                             (q) => q.id == questionsToCustomize[i].id,
                           );
                           if (index != -1) {
-                            _collection.questions[index].multipleChoiceOptions =
+                            _collection
+                                    .flashcards[index]
+                                    .multipleChoiceOptions =
                                 questionsToCustomize[i].multipleChoiceOptions;
                           }
                         }
@@ -551,7 +552,7 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
     );
   }
 
-  void _showViewQuestionDialog(Question question) {
+  void _showViewQuestionDialog(Flashcard question) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -639,7 +640,7 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
     );
   }
 
-  void _showEditQuestionDialog(Question question) {
+  void _showEditQuestionDialog(Flashcard question) {
     final formKey = GlobalKey<FormState>();
     final TextEditingController questionController = TextEditingController(
       text: question.question,
@@ -777,15 +778,15 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
                       Navigator.of(context).pop();
                       // Update the question
                       pageSetState(() {
-                        final index = _collection.questions.indexWhere(
+                        final index = _collection.flashcards.indexWhere(
                           (q) => q.id == question.id,
                         );
                         if (index != -1) {
-                          _collection.questions[index].question =
+                          _collection.flashcards[index].question =
                               questionController.text;
-                          _collection.questions[index].answer =
+                          _collection.flashcards[index].answer =
                               answerController.text;
-                          _collection.questions[index].caseSensitive =
+                          _collection.flashcards[index].caseSensitive =
                               caseSensitive;
                         }
                       });
@@ -804,7 +805,7 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
     );
   }
 
-  void _showDeleteQuestionDialog(Question question) {
+  void _showDeleteQuestionDialog(Flashcard question) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -849,7 +850,7 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
     );
   }
 
-  void _showQuestionMenu(BuildContext context, Question question) {
+  void _showQuestionMenu(BuildContext context, Flashcard question) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -914,18 +915,11 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.lock_outline,
-                size: 80,
-                color: Colors.grey[600],
-              ),
+              Icon(Icons.lock_outline, size: 80, color: Colors.grey[600]),
               const SizedBox(height: 24),
               Text(
                 "Você precisa estar logado para acessar esta coleção",
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 18,
-                ),
+                style: TextStyle(color: Colors.white70, fontSize: 18),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -961,12 +955,12 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
                 ),
                 color: const Color.fromARGB(221, 90, 90, 90),
                 child: Text(
-                  "Perguntas: ${_collection.questions.length}",
+                  "Perguntas: ${_collection.flashcards.length}",
                   style: TextStyle(color: Colors.white, fontSize: 14),
                 ),
               ),
               Expanded(
-                child: _collection.questions.isEmpty
+                child: _collection.flashcards.isEmpty
                     ? Center(
                         child: Text(
                           "Nenhuma pergunta ainda...",
@@ -975,9 +969,9 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
                       )
                     : ListView.builder(
                         padding: const EdgeInsets.all(16),
-                        itemCount: _collection.questions.length,
+                        itemCount: _collection.flashcards.length,
                         itemBuilder: (context, index) {
-                          final question = _collection.questions[index];
+                          final question = _collection.flashcards[index];
                           return Container(
                             margin: const EdgeInsets.only(bottom: 12),
                             decoration: BoxDecoration(
