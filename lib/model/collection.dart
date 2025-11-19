@@ -1,29 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flashcard_app/model/question.dart';
 
 class Collection {
   String _id;
   String _name;
   Color _color;
   DateTime _createdAt;
-  int _flashcardCount;
+  List<Question> _questions;
 
   Collection({
     required String id,
     required String name,
     required Color color,
     DateTime? createdAt,
-    int flashcardCount = 0,
+    List<Question>? questions,
   }) : _id = id,
        _name = name,
        _color = color,
        _createdAt = createdAt ?? DateTime.now(),
-       _flashcardCount = flashcardCount;
+       _questions = questions ?? [];
 
   String get id => _id;
   String get name => _name;
   Color get color => _color;
   DateTime get createdAt => _createdAt;
-  int get flashcardCount => _flashcardCount;
+  List<Question> get questions => _questions;
+  int get flashcardCount => _questions.length;
 
   set name(String name) {
     _name = name;
@@ -33,8 +35,12 @@ class Collection {
     _color = color;
   }
 
-  set flashcardCount(int count) {
-    _flashcardCount = count;
+  void addQuestion(Question question) {
+    _questions.add(question);
+  }
+
+  void removeQuestion(String questionId) {
+    _questions.removeWhere((q) => q.id == questionId);
   }
 
   Map<String, dynamic> toJson() {
@@ -43,7 +49,7 @@ class Collection {
       'name': _name,
       'color': _color.value,
       'createdAt': _createdAt.toIso8601String(),
-      'flashcardCount': _flashcardCount,
+      'questions': _questions.map((q) => q.toJson()).toList(),
     };
   }
 
@@ -53,7 +59,11 @@ class Collection {
       name: json['name'],
       color: Color(json['color']),
       createdAt: DateTime.parse(json['createdAt']),
-      flashcardCount: json['flashcardCount'] ?? 0,
+      questions:
+          (json['questions'] as List<dynamic>?)
+              ?.map((q) => Question.fromJson(q))
+              .toList() ??
+          [],
     );
   }
 }
