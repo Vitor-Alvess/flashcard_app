@@ -1,12 +1,18 @@
 import 'package:flashcard_app/model/collection.dart';
 import 'package:flashcard_app/model/question.dart';
+import 'package:flashcard_app/model/user.dart';
 import 'package:flashcard_app/view/study_page.dart';
 import 'package:flutter/material.dart';
 
 class CollectionDetailsPage extends StatefulWidget {
   final Collection collection;
+  final User user;
 
-  const CollectionDetailsPage({super.key, required this.collection});
+  const CollectionDetailsPage({
+    super.key,
+    required this.collection,
+    required this.user,
+  });
 
   @override
   State<CollectionDetailsPage> createState() => _CollectionDetailsPageState();
@@ -25,6 +31,7 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
       color: widget.collection.color,
       createdAt: widget.collection.createdAt,
       questions: List<Question>.from(widget.collection.questions),
+      imagePath: widget.collection.imagePath,
     );
   }
 
@@ -886,6 +893,47 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Proteção de autenticação - se não estiver logado, mostrar mensagem
+    if (!widget.user.isLoggedIn) {
+      return Scaffold(
+        backgroundColor: Colors.black87,
+        appBar: AppBar(
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          title: Text(
+            "Acesso Negado",
+            style: TextStyle(color: Colors.white, fontSize: 20),
+          ),
+          centerTitle: true,
+          backgroundColor: const Color.fromARGB(221, 90, 90, 90),
+          iconTheme: IconThemeData(color: Colors.white),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.lock_outline,
+                size: 80,
+                color: Colors.grey[600],
+              ),
+              const SizedBox(height: 24),
+              Text(
+                "Você precisa estar logado para acessar esta coleção",
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 18,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.black87,
       appBar: AppBar(
@@ -963,6 +1011,7 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
             bottom: 16,
             left: 16,
             child: FloatingActionButton(
+              heroTag: "add_question_fab",
               onPressed: _showAddQuestionDialog,
               backgroundColor: Colors.white,
               child: Icon(Icons.add, color: Colors.black),
@@ -975,6 +1024,7 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
             bottom: 16,
             right: 16,
             child: FloatingActionButton(
+              heroTag: "study_mode_fab",
               onPressed: _showStudyModeDialog,
               backgroundColor: Colors.white,
               child: Icon(Icons.play_arrow, color: Colors.black),

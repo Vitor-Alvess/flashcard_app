@@ -1,5 +1,8 @@
 import 'package:flashcard_app/model/user.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class CreateAccountPage extends StatefulWidget {
   final User user;
@@ -22,6 +25,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
   final _passwordController = TextEditingController();
 
   bool _isPasswordVisible = false;
+  String? _selectedImagePath;
 
   @override
   void dispose() {
@@ -38,6 +42,8 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
       widget.user.email = _emailController.text.trim();
       widget.user.age = int.tryParse(_ageController.text) ?? 0;
       widget.user.password = _passwordController.text.trim();
+      // Vincular foto de perfil à conta
+      widget.user.profilePicturePath = _selectedImagePath;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -57,6 +63,22 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
     }
   }
 
+  Future<void> _pickImageFromGallery() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 85,
+    );
+
+    if (image != null) {
+      setState(() {
+        _selectedImagePath = image.path;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -73,6 +95,102 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
+                // Foto de Perfil
+                const SizedBox(height: 16.0),
+                Center(
+                  child: GestureDetector(
+                    onTap: _pickImageFromGallery,
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: primaryColor,
+                              width: 3,
+                            ),
+                          ),
+                          child: _selectedImagePath != null
+                              ? ClipOval(
+                                  child: kIsWeb
+                                      ? Image.network(
+                                          _selectedImagePath!,
+                                          width: 120,
+                                          height: 120,
+                                          fit: BoxFit.cover,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                            return Icon(
+                                              Icons.person,
+                                              size: 60,
+                                              color: Colors.grey[600],
+                                            );
+                                          },
+                                        )
+                                      : Image.file(
+                                          File(_selectedImagePath!),
+                                          width: 120,
+                                          height: 120,
+                                          fit: BoxFit.cover,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                            return Icon(
+                                              Icons.person,
+                                              size: 60,
+                                              color: Colors.grey[600],
+                                            );
+                                          },
+                                        ),
+                                )
+                              : Icon(
+                                  Icons.person,
+                                  size: 60,
+                                  color: Colors.grey[600],
+                                ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: primaryColor,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: secondaryColor,
+                                width: 2,
+                              ),
+                            ),
+                            child: Icon(
+                              _selectedImagePath != null
+                                  ? Icons.edit
+                                  : Icons.camera_alt,
+                              color: secondaryColor,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8.0),
+                Center(
+                  child: Text(
+                    _selectedImagePath != null
+                        ? 'Toque para alterar a foto'
+                        : 'Toque para adicionar foto de perfil',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16.0),
                 TextFormField(
                   cursorColor: primaryColor,
                   controller: _nameController,

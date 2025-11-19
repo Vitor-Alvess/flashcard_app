@@ -36,19 +36,108 @@ class _MainPageState extends State<MainPage> {
     });
   }
 
-  void _showCreateCollectionDialog(BuildContext context) {
+  void _deleteCollection(Collection collection) {
+    setState(() {
+      _collections.removeWhere((c) => c.id == collection.id);
+    });
+  }
+
+  void _showCollectionMenu(BuildContext context, Collection collection) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15.0),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.edit),
+                title: Text("Editar"),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showEditCollectionDialog(context, collection);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.delete, color: Colors.red),
+                title: Text("Excluir", style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showDeleteCollectionDialog(context, collection);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showDeleteCollectionDialog(
+    BuildContext context,
+    Collection collection,
+  ) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15.0),
+          ),
+          title: const Text(
+            "Excluir Coleção",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            "Tem certeza que deseja excluir a coleção \"${collection.name}\"?\n\nTodas as perguntas serão perdidas.",
+            style: TextStyle(fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("Cancelar"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _deleteCollection(collection);
+              },
+              child: const Text(
+                "Excluir",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showEditCollectionDialog(BuildContext context, Collection collection) {
     final formKey = GlobalKey<FormState>();
-    final TextEditingController nameController = TextEditingController();
-    Color selectedColor = Colors.blue;
+    final TextEditingController nameController = TextEditingController(
+      text: collection.name,
+    );
+    Color selectedColor = collection.color;
     bool isColorMode = true;
-    String? selectedImagePath;
-    bool isImageMode = false;
+    String? selectedImagePath = collection.imagePath;
+    bool isImageMode = collection.imagePath != null;
+    final pageSetState = setState; // Capture the page's setState
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
-          builder: (context, setState) {
+          builder: (context, dialogSetState) {
             return AlertDialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(15.0),
@@ -59,7 +148,6 @@ class _MainPageState extends State<MainPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Área de imagem/cor (só aparece quando não está escolhendo cor)
                     if (isColorMode && !isImageMode)
                       Container(
                         height: 200,
@@ -73,7 +161,6 @@ class _MainPageState extends State<MainPage> {
                         ),
                         child: Stack(
                           children: [
-                            // Botão de foto no canto inferior esquerdo
                             Positioned(
                               bottom: 10,
                               left: 10,
@@ -87,7 +174,7 @@ class _MainPageState extends State<MainPage> {
                                     imageQuality: 85,
                                   );
                                   if (image != null) {
-                                    setState(() {
+                                    dialogSetState(() {
                                       selectedImagePath = image.path;
                                       isImageMode = true;
                                     });
@@ -115,13 +202,12 @@ class _MainPageState extends State<MainPage> {
                                 ),
                               ),
                             ),
-                            // Botão de roda de cores no canto inferior direito
                             Positioned(
                               bottom: 10,
                               right: 10,
                               child: GestureDetector(
                                 onTap: () {
-                                  setState(() {
+                                  dialogSetState(() {
                                     isColorMode = false;
                                   });
                                 },
@@ -150,7 +236,6 @@ class _MainPageState extends State<MainPage> {
                           ],
                         ),
                       ),
-                    // Área de imagem quando foto foi selecionada
                     if (isImageMode)
                       Container(
                         height: 200,
@@ -182,13 +267,12 @@ class _MainPageState extends State<MainPage> {
                                       fit: BoxFit.cover,
                                     ),
                             ),
-                            // Botão para remover foto e voltar para cor
                             Positioned(
                               top: 10,
                               right: 10,
                               child: GestureDetector(
                                 onTap: () {
-                                  setState(() {
+                                  dialogSetState(() {
                                     selectedImagePath = null;
                                     isImageMode = false;
                                   });
@@ -208,13 +292,12 @@ class _MainPageState extends State<MainPage> {
                                 ),
                               ),
                             ),
-                            // Botão de roda de cores no canto inferior direito
                             Positioned(
                               bottom: 10,
                               right: 10,
                               child: GestureDetector(
                                 onTap: () {
-                                  setState(() {
+                                  dialogSetState(() {
                                     isColorMode = false;
                                   });
                                 },
@@ -243,7 +326,6 @@ class _MainPageState extends State<MainPage> {
                           ],
                         ),
                       ),
-                    // Seletor de cores (aparece quando clica no botão de paleta)
                     if (!isColorMode)
                       Container(
                         decoration: BoxDecoration(
@@ -255,7 +337,6 @@ class _MainPageState extends State<MainPage> {
                         ),
                         child: Column(
                           children: [
-                            // Header com botão de voltar
                             Container(
                               padding: EdgeInsets.all(15),
                               child: Row(
@@ -291,13 +372,11 @@ class _MainPageState extends State<MainPage> {
                                 ],
                               ),
                             ),
-                            // Grid de cores
                             Padding(
                               padding: EdgeInsets.fromLTRB(15, 0, 15, 15),
                               child: Column(
                                 children: [
                                   SizedBox(height: 15),
-                                  // Primeira linha - cores básicas
                                   Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceEvenly,
@@ -312,9 +391,11 @@ class _MainPageState extends State<MainPage> {
                                         ].map((color) {
                                           return GestureDetector(
                                             onTap: () {
-                                              setState(() {
+                                              dialogSetState(() {
                                                 selectedColor = color;
                                                 isColorMode = true;
+                                                selectedImagePath = null;
+                                                isImageMode = false;
                                               });
                                             },
                                             child: Container(
@@ -345,7 +426,6 @@ class _MainPageState extends State<MainPage> {
                                         }).toList(),
                                   ),
                                   SizedBox(height: 10),
-                                  // Segunda linha - cores adicionais
                                   Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceEvenly,
@@ -360,9 +440,11 @@ class _MainPageState extends State<MainPage> {
                                         ].map((color) {
                                           return GestureDetector(
                                             onTap: () {
-                                              setState(() {
+                                              dialogSetState(() {
                                                 selectedColor = color;
                                                 isColorMode = true;
+                                                selectedImagePath = null;
+                                                isImageMode = false;
                                               });
                                             },
                                             child: Container(
@@ -393,7 +475,6 @@ class _MainPageState extends State<MainPage> {
                                         }).toList(),
                                   ),
                                   SizedBox(height: 10),
-                                  // Terceira linha - tons de cinza
                                   Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceEvenly,
@@ -408,9 +489,12 @@ class _MainPageState extends State<MainPage> {
                                         ].map((color) {
                                           return GestureDetector(
                                             onTap: () {
-                                              setState(() {
+                                              dialogSetState(() {
                                                 selectedColor = color;
                                                 isColorMode = true;
+                                                // Limpar foto quando escolher cor
+                                                selectedImagePath = null;
+                                                isImageMode = false;
                                               });
                                             },
                                             child: Container(
@@ -446,7 +530,6 @@ class _MainPageState extends State<MainPage> {
                           ],
                         ),
                       ),
-                    // Campo de nome
                     Padding(
                       padding: EdgeInsets.all(20),
                       child: Form(
@@ -501,7 +584,517 @@ class _MainPageState extends State<MainPage> {
                         ),
                       ),
                     ),
-                    // Botão criar
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey[800],
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: const Text(
+                            "Salvar alterações",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          onPressed: () {
+                            if (formKey.currentState!.validate()) {
+                              Navigator.of(context).pop();
+                              // Update the collection using the page's setState
+                              pageSetState(() {
+                                final index = _collections.indexWhere(
+                                  (c) => c.id == collection.id,
+                                );
+                                if (index != -1) {
+                                  _collections[index].name =
+                                      nameController.text;
+                                  _collections[index].color = selectedColor;
+                                  _collections[index].imagePath =
+                                      selectedImagePath;
+                                }
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showCreateCollectionDialog(BuildContext context) {
+    final formKey = GlobalKey<FormState>();
+    final TextEditingController nameController = TextEditingController();
+
+    Color selectedColor = Colors.blue;
+    bool isColorMode = true;
+    String? selectedImagePath;
+    bool isImageMode = false;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15.0),
+              ),
+              contentPadding: EdgeInsets.zero,
+              content: Container(
+                width: MediaQuery.of(context).size.width * 0.8,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isColorMode && !isImageMode)
+                      Container(
+                        height: 200,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: selectedColor,
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(15),
+                            topRight: Radius.circular(15),
+                          ),
+                        ),
+                        child: Stack(
+                          children: [
+                            Positioned(
+                              bottom: 10,
+                              left: 10,
+                              child: GestureDetector(
+                                onTap: () async {
+                                  final ImagePicker picker = ImagePicker();
+                                  final XFile? image = await picker.pickImage(
+                                    source: ImageSource.gallery,
+                                    maxWidth: 800,
+                                    maxHeight: 800,
+                                    imageQuality: 85,
+                                  );
+                                  if (image != null) {
+                                    setDialogState(() {
+                                      selectedImagePath = image.path;
+                                      isImageMode = true;
+                                    });
+                                  }
+                                },
+                                child: Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        blurRadius: 4,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Icon(
+                                    Icons.photo,
+                                    color: Colors.grey[600],
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 10,
+                              right: 10,
+                              child: GestureDetector(
+                                onTap: () {
+                                  setDialogState(() {
+                                    isColorMode = false;
+                                  });
+                                },
+                                child: Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        blurRadius: 4,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Icon(
+                                    Icons.palette,
+                                    color: Colors.grey[600],
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (isImageMode)
+                      Container(
+                        height: 200,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(15),
+                            topRight: Radius.circular(15),
+                          ),
+                        ),
+                        child: Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(15),
+                                topRight: Radius.circular(15),
+                              ),
+                              child: kIsWeb
+                                  ? Image.network(
+                                      selectedImagePath!,
+                                      width: double.infinity,
+                                      height: 200,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Image.file(
+                                      File(selectedImagePath!),
+                                      width: double.infinity,
+                                      height: 200,
+                                      fit: BoxFit.cover,
+                                    ),
+                            ),
+                            Positioned(
+                              top: 10,
+                              right: 10,
+                              child: GestureDetector(
+                                onTap: () {
+                                  setDialogState(() {
+                                    selectedImagePath = null;
+                                    isImageMode = false;
+                                  });
+                                },
+                                child: Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: Colors.black54,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.close,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 10,
+                              right: 10,
+                              child: GestureDetector(
+                                onTap: () {
+                                  setDialogState(() {
+                                    isColorMode = false;
+                                  });
+                                },
+                                child: Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        blurRadius: 4,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Icon(
+                                    Icons.palette,
+                                    color: Colors.grey[600],
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (!isColorMode)
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(15),
+                            topRight: Radius.circular(15),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            // Header com botão de voltar
+                            Container(
+                              padding: EdgeInsets.all(15),
+                              child: Row(
+                                children: [
+                                  GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        isColorMode = true;
+                                      });
+                                    },
+                                    child: Container(
+                                      width: 30,
+                                      height: 30,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[300],
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        Icons.arrow_back,
+                                        color: Colors.grey[600],
+                                        size: 16,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 10),
+                                  Text(
+                                    "Escolha uma cor:",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.fromLTRB(15, 0, 15, 15),
+                              child: Column(
+                                children: [
+                                  SizedBox(height: 15),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children:
+                                        [
+                                          Colors.red,
+                                          Colors.orange,
+                                          Colors.yellow,
+                                          Colors.green,
+                                          Colors.blue,
+                                          Colors.purple,
+                                        ].map((color) {
+                                          return GestureDetector(
+                                            onTap: () {
+                                              setDialogState(() {
+                                                selectedColor = color;
+                                                isColorMode = true;
+                                                selectedImagePath = null;
+                                                isImageMode = false;
+                                              });
+                                            },
+                                            child: Container(
+                                              width: 35,
+                                              height: 35,
+                                              decoration: BoxDecoration(
+                                                color: color,
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: selectedColor == color
+                                                      ? Colors.black
+                                                      : Colors.grey[300]!,
+                                                  width: selectedColor == color
+                                                      ? 3
+                                                      : 1,
+                                                ),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black
+                                                        .withOpacity(0.1),
+                                                    blurRadius: 2,
+                                                    offset: Offset(0, 1),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                  ),
+                                  SizedBox(height: 10),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children:
+                                        [
+                                          Colors.pink,
+                                          Colors.teal,
+                                          Colors.indigo,
+                                          Colors.amber,
+                                          Colors.cyan,
+                                          Colors.deepOrange,
+                                        ].map((color) {
+                                          return GestureDetector(
+                                            onTap: () {
+                                              setDialogState(() {
+                                                selectedColor = color;
+                                                isColorMode = true;
+                                                selectedImagePath = null;
+                                                isImageMode = false;
+                                              });
+                                            },
+                                            child: Container(
+                                              width: 35,
+                                              height: 35,
+                                              decoration: BoxDecoration(
+                                                color: color,
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: selectedColor == color
+                                                      ? Colors.black
+                                                      : Colors.grey[300]!,
+                                                  width: selectedColor == color
+                                                      ? 3
+                                                      : 1,
+                                                ),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black
+                                                        .withOpacity(0.1),
+                                                    blurRadius: 2,
+                                                    offset: Offset(0, 1),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                  ),
+                                  SizedBox(height: 10),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children:
+                                        [
+                                          Colors.grey[300]!,
+                                          Colors.grey[500]!,
+                                          Colors.grey[700]!,
+                                          Colors.brown,
+                                          Colors.lime,
+                                          Colors.deepPurple,
+                                        ].map((color) {
+                                          return GestureDetector(
+                                            onTap: () {
+                                              setDialogState(() {
+                                                selectedColor = color;
+                                                isColorMode = true;
+                                                selectedImagePath = null;
+                                                isImageMode = false;
+                                              });
+                                            },
+                                            child: Container(
+                                              width: 35,
+                                              height: 35,
+                                              decoration: BoxDecoration(
+                                                color: color,
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: selectedColor == color
+                                                      ? Colors.black
+                                                      : Colors.grey[300]!,
+                                                  width: selectedColor == color
+                                                      ? 3
+                                                      : 1,
+                                                ),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black
+                                                        .withOpacity(0.1),
+                                                    blurRadius: 2,
+                                                    offset: Offset(0, 1),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Form(
+                        key: formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Nome",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            TextFormField(
+                              cursorColor: Colors.black,
+                              style: TextStyle(fontSize: 14),
+                              controller: nameController,
+                              decoration: InputDecoration(
+                                hintText: 'Nome do seu Grupo',
+                                hintStyle: TextStyle(
+                                  color: Colors.grey[400],
+                                  fontSize: 14,
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[100],
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide.none,
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey[300]!,
+                                  ),
+                                ),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 12,
+                                ),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return "Nome é obrigatório";
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                     Padding(
                       padding: EdgeInsets.fromLTRB(20, 0, 20, 20),
                       child: SizedBox(
@@ -524,12 +1117,14 @@ class _MainPageState extends State<MainPage> {
                           ),
                           onPressed: () {
                             if (formKey.currentState!.validate()) {
+                              final colorToSave = selectedColor;
+                              final imagePathToSave = selectedImagePath;
+                              Navigator.of(context).pop();
                               _addCollection(
                                 nameController.text,
-                                selectedColor,
-                                imagePath: selectedImagePath,
+                                colorToSave,
+                                imagePath: imagePathToSave,
                               );
-                              Navigator.of(context).pop();
                             }
                           },
                         ),
@@ -763,7 +1358,43 @@ class _MainPageState extends State<MainPage> {
         index: _selectedIndex,
         children: [
           // Página Início (índice 0)
-          _collections.isEmpty
+          !_user.isLoggedIn
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.lock_outline,
+                        size: 80,
+                        color: Colors.grey[600],
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        "Faça login para acessar suas coleções",
+                        style: TextStyle(color: Colors.white70, fontSize: 18),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          _showLoginDialog(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey[800],
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 32,
+                            vertical: 16,
+                          ),
+                        ),
+                        child: const Text(
+                          "Fazer Login",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : _collections.isEmpty
               ? Stack(
                   children: [
                     Padding(
@@ -851,6 +1482,11 @@ class _MainPageState extends State<MainPage> {
                             final collection = _collections[index];
                             return GestureDetector(
                               onTap: () async {
+                                // Verificar autenticação antes de abrir detalhes
+                                if (!_user.isLoggedIn) {
+                                  _showLoginDialog(context);
+                                  return;
+                                }
                                 final updatedCollection = await Navigator.push(
                                   context,
                                   PageRouteBuilder(
@@ -861,6 +1497,7 @@ class _MainPageState extends State<MainPage> {
                                           secondaryAnimation,
                                         ) => CollectionDetailsPage(
                                           collection: collection,
+                                          user: _user,
                                         ),
                                     transitionsBuilder:
                                         (
@@ -967,6 +1604,32 @@ class _MainPageState extends State<MainPage> {
                                         ),
                                       ),
                                     ),
+                                    // Botão de menu (três pontinhos)
+                                    Positioned(
+                                      top: 8,
+                                      right: 8,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          _showCollectionMenu(
+                                            context,
+                                            collection,
+                                          );
+                                        },
+                                        child: Container(
+                                          width: 32,
+                                          height: 32,
+                                          decoration: BoxDecoration(
+                                            color: Colors.black54,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            Icons.more_vert,
+                                            color: Colors.white,
+                                            size: 18,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                     // Conteúdo
                                     Padding(
                                       padding: const EdgeInsets.all(16.0),
@@ -1021,7 +1684,7 @@ class _MainPageState extends State<MainPage> {
                   ),
                 ),
           // Página Histórico (índice 1)
-          const HistoryPage(),
+          HistoryPage(user: _user),
           // Página Perfil (índice 2)
           ProfilePage(
             user: _user,
@@ -1033,6 +1696,7 @@ class _MainPageState extends State<MainPage> {
             onLogout: () {
               setState(() {
                 _user = User.empty();
+                _collections = []; // Limpa todas as coleções ao deslogar
                 _selectedIndex = 0; // Volta para o início após deslogar
               });
             },
@@ -1041,6 +1705,7 @@ class _MainPageState extends State<MainPage> {
       ),
       floatingActionButton: _selectedIndex == 0
           ? FloatingActionButton(
+              heroTag: "add_collection_fab",
               onPressed: () {
                 if (_user.isLoggedIn) {
                   _showCreateCollectionDialog(context);

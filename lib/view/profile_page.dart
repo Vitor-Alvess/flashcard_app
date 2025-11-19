@@ -30,6 +30,15 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   @override
+  void didUpdateWidget(ProfilePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Atualiza o usuário quando o widget.user mudar (ex: após logout)
+    if (oldWidget.user != widget.user) {
+      _currentUser = widget.user;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black87,
