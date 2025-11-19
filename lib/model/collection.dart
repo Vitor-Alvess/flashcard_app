@@ -46,7 +46,7 @@ class Collection {
     return {
       'id': _id,
       'name': _name,
-      'color': _color.toARGB32(),
+      'color': _color,
       'createdAt': _createdAt.toIso8601String(),
       'flashcardCount': _flashcardCount,
       'flashcards': _flashcards
