@@ -55,6 +55,11 @@ flutter:
     - assets/images/sleepingCat.png
     - assets/images/addButton.png
     - assets/images/arrowRight.png
+    - assets/images/results/perfect.png
+    - assets/images/results/high.png
+    - assets/images/results/medium.png
+    - assets/images/results/low.png
+    - assets/images/results/zero.png
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

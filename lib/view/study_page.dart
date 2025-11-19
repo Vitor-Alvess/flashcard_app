@@ -1,5 +1,6 @@
 import 'package:flashcard_app/model/collection.dart';
 import 'package:flashcard_app/model/question.dart';
+import 'package:flashcard_app/view/results_page.dart';
 import 'package:flutter/material.dart';
 import 'dart:math';
 
@@ -9,11 +10,7 @@ class StudyPage extends StatefulWidget {
   final Collection collection;
   final StudyMode mode;
 
-  const StudyPage({
-    super.key,
-    required this.collection,
-    required this.mode,
-  });
+  const StudyPage({super.key, required this.collection, required this.mode});
 
   @override
   State<StudyPage> createState() => _StudyPageState();
@@ -26,6 +23,9 @@ class _StudyPageState extends State<StudyPage> {
   final TextEditingController _answerController = TextEditingController();
   List<Question> _shuffledQuestions = [];
   Map<String, List<String>> _multipleChoiceOptions = {};
+  int _correctAnswers = 0;
+  Map<String, bool> _questionResults =
+      {}; // Track if each question was answered correctly
 
   @override
   void initState() {
@@ -40,7 +40,9 @@ class _StudyPageState extends State<StudyPage> {
       for (var question in _shuffledQuestions) {
         if (question.multipleChoiceOptions != null) {
           // Use personalized options
-          _multipleChoiceOptions[question.id] = List<String>.from(question.multipleChoiceOptions!);
+          _multipleChoiceOptions[question.id] = List<String>.from(
+            question.multipleChoiceOptions!,
+          );
         } else {
           // Mix answers from all questions
           List<String> allAnswers = widget.collection.questions
@@ -66,43 +68,52 @@ class _StudyPageState extends State<StudyPage> {
         _answerController.clear();
       });
     } else {
-      // Finished
-      _showCompletionDialog();
+      // Finished - show results
+      _showResults();
     }
   }
 
-  void _showCompletionDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15.0),
-          ),
-          title: const Text("Parabéns!"),
-          content: const Text("Você completou todas as perguntas!"),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close dialog
-                Navigator.of(context).pop(); // Close study page
-              },
-              child: const Text("Fechar"),
-            ),
-          ],
-        );
-      },
+  void _selfAssess(bool correct) {
+    final currentQuestion = _shuffledQuestions[_currentIndex];
+    // Track result
+    if (!_questionResults.containsKey(currentQuestion.id)) {
+      _questionResults[currentQuestion.id] = correct;
+      if (correct) {
+        _correctAnswers++;
+      }
+    }
+    // Move to next question
+    _nextQuestion();
+  }
+
+  void _showResults() {
+    final totalQuestions = _shuffledQuestions.length;
+    final percentage = totalQuestions > 0
+        ? (_correctAnswers / totalQuestions * 100).round()
+        : 0;
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ResultsPage(
+          correctAnswers: _correctAnswers,
+          totalQuestions: totalQuestions,
+          percentage: percentage,
+        ),
+      ),
     );
   }
 
   void _checkAnswer() {
+    final currentQuestion = _shuffledQuestions[_currentIndex];
+    bool isCorrect = false;
+
     if (widget.mode == StudyMode.written) {
       final userAnswer = _answerController.text.trim();
-      final correctAnswer = _shuffledQuestions[_currentIndex].answer.trim();
-      final isCaseSensitive = _shuffledQuestions[_currentIndex].caseSensitive;
+      final correctAnswer = currentQuestion.answer.trim();
+      final isCaseSensitive = currentQuestion.caseSensitive;
 
-      bool isCorrect = isCaseSensitive
+      isCorrect = isCaseSensitive
           ? userAnswer == correctAnswer
           : userAnswer.toLowerCase() == correctAnswer.toLowerCase();
 
@@ -111,15 +122,19 @@ class _StudyPageState extends State<StudyPage> {
         _selectedAnswer = isCorrect ? "correct" : "incorrect";
       });
     } else if (widget.mode == StudyMode.multipleChoice) {
+      isCorrect = _selectedAnswer == currentQuestion.answer;
       setState(() {
         _showAnswer = true;
       });
     }
-  }
 
-  void _selfAssess(bool correct) {
-    // Move to next question
-    _nextQuestion();
+    // Track result
+    if (!_questionResults.containsKey(currentQuestion.id)) {
+      _questionResults[currentQuestion.id] = isCorrect;
+      if (isCorrect) {
+        _correctAnswers++;
+      }
+    }
   }
 
   @override
@@ -197,8 +212,10 @@ class _StudyPageState extends State<StudyPage> {
             ),
             const SizedBox(height: 24),
             if (widget.mode == StudyMode.written) _buildWrittenMode(),
-            if (widget.mode == StudyMode.multipleChoice) _buildMultipleChoiceMode(currentQuestion),
-            if (widget.mode == StudyMode.selfAssessment) _buildSelfAssessmentMode(),
+            if (widget.mode == StudyMode.multipleChoice)
+              _buildMultipleChoiceMode(currentQuestion),
+            if (widget.mode == StudyMode.selfAssessment)
+              _buildSelfAssessmentMode(),
             const SizedBox(height: 24),
           ],
         ),
@@ -318,8 +335,8 @@ class _StudyPageState extends State<StudyPage> {
                 color: isCorrect
                     ? Colors.green[100]
                     : (isSelected && !isCorrect)
-                        ? Colors.red[100]
-                        : Colors.grey[200],
+                    ? Colors.red[100]
+                    : Colors.grey[200],
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: isCorrect ? Colors.green : Colors.transparent,
@@ -339,7 +356,9 @@ class _StudyPageState extends State<StudyPage> {
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 16,
-                        fontWeight: isCorrect ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: isCorrect
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                     ),
                   ),
@@ -436,7 +455,11 @@ class _StudyPageState extends State<StudyPage> {
               ),
               child: const Text(
                 "Errei",
-                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -453,7 +476,11 @@ class _StudyPageState extends State<StudyPage> {
               ),
               child: const Text(
                 "Acertei",
-                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -478,7 +505,11 @@ class _StudyPageState extends State<StudyPage> {
         ),
         child: const Text(
           "Ver resposta",
-          style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
@@ -490,4 +521,3 @@ class _StudyPageState extends State<StudyPage> {
     super.dispose();
   }
 }
-
