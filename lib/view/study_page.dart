@@ -26,6 +26,7 @@ class _StudyPageState extends State<StudyPage> {
   int _correctAnswers = 0;
   Map<String, bool> _questionResults =
       {}; // Track if each question was answered correctly
+  bool _isPaused = false;
 
   @override
   void initState() {
@@ -166,7 +167,11 @@ class _StudyPageState extends State<StudyPage> {
       appBar: AppBar(
         leading: IconButton(
           icon: Icon(Icons.pause, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            setState(() {
+              _isPaused = true;
+            });
+          },
         ),
         title: Text(
           widget.collection.name,
@@ -186,42 +191,50 @@ class _StudyPageState extends State<StudyPage> {
         backgroundColor: const Color.fromARGB(221, 90, 90, 90),
         iconTheme: IconThemeData(color: Colors.white),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Expanded(
-              child: Center(
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(24.0),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    _showAnswer && widget.mode == StudyMode.selfAssessment
-                        ? currentQuestion.answer
-                        : currentQuestion.question,
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w500,
+      body: Stack(
+        children: [
+          Opacity(
+            opacity: _isPaused ? 0.3 : 1.0,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: Center(
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(24.0),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          _showAnswer && widget.mode == StudyMode.selfAssessment
+                              ? currentQuestion.answer
+                              : currentQuestion.question,
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
                     ),
-                    textAlign: TextAlign.center,
                   ),
-                ),
+                  const SizedBox(height: 24),
+                  if (widget.mode == StudyMode.written) _buildWrittenMode(),
+                  if (widget.mode == StudyMode.multipleChoice)
+                    _buildMultipleChoiceMode(currentQuestion),
+                  if (widget.mode == StudyMode.selfAssessment)
+                    _buildSelfAssessmentMode(),
+                  const SizedBox(height: 24),
+                ],
               ),
             ),
-            const SizedBox(height: 24),
-            if (widget.mode == StudyMode.written) _buildWrittenMode(),
-            if (widget.mode == StudyMode.multipleChoice)
-              _buildMultipleChoiceMode(currentQuestion),
-            if (widget.mode == StudyMode.selfAssessment)
-              _buildSelfAssessmentMode(),
-            const SizedBox(height: 24),
-          ],
-        ),
+          ),
+          if (_isPaused) _buildPauseModal(),
+        ],
       ),
     );
   }
@@ -494,6 +507,111 @@ class _StudyPageState extends State<StudyPage> {
                 ),
               ),
             ),
+    );
+  }
+
+  Widget _buildPauseModal() {
+    return Container(
+      color: Colors.black54,
+      child: Center(
+        child: Container(
+          margin: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Pausado",
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _isPaused = false;
+                    });
+                  },
+                  icon: const Icon(Icons.play_arrow, color: Colors.white),
+                  label: const Text(
+                    "Continuar",
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[800],
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    // Reset everything
+                    setState(() {
+                      _currentIndex = 0;
+                      _showAnswer = false;
+                      _selectedAnswer = null;
+                      _answerController.clear();
+                      _correctAnswers = 0;
+                      _questionResults.clear();
+                      _shuffledQuestions.shuffle(Random());
+                      _prepareMultipleChoiceOptions();
+                      _isPaused = false;
+                    });
+                  },
+                  icon: const Icon(Icons.refresh, color: Colors.white),
+                  label: const Text(
+                    "Reiniciar",
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[800],
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  icon: const Icon(Icons.exit_to_app, color: Colors.white),
+                  label: const Text(
+                    "Sair",
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[800],
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
