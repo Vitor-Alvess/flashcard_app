@@ -1,5 +1,6 @@
 import 'package:flashcard_app/model/collection.dart';
 import 'package:flashcard_app/model/question.dart';
+import 'package:flashcard_app/view/study_page.dart';
 import 'package:flutter/material.dart';
 
 class CollectionDetailsPage extends StatefulWidget {
@@ -199,25 +200,345 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
                 title: Text("Múltipla escolha"),
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Implement multiple choice mode
+                  _handleMultipleChoiceMode();
                 },
               ),
               ListTile(
                 title: Text("Escrita"),
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Implement written mode
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => StudyPage(
+                        collection: _collection,
+                        mode: StudyMode.written,
+                      ),
+                    ),
+                  );
                 },
               ),
               ListTile(
                 title: Text("Autoavaliação"),
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Implement self-assessment mode
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => StudyPage(
+                        collection: _collection,
+                        mode: StudyMode.selfAssessment,
+                      ),
+                    ),
+                  );
                 },
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  void _handleMultipleChoiceMode() {
+    // Show warning about mixing answers
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15.0),
+          ),
+          title: const Text("Múltipla Escolha"),
+          content: const Text(
+            "Por padrão, as alternativas serão geradas misturando as respostas de todos os flashcards da coleção.\n\nDeseja aceitar este padrão ou personalizar as alternativas para cada pergunta?",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _showCustomizeOptionsDialog();
+              },
+              child: const Text("Personalizar"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.grey[800],
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Check if there are at least 4 questions when accepting default
+                if (_collection.questions.length < 4) {
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
+                        title: const Text("Aviso"),
+                        content: Text(
+                          "Para usar o modo de múltipla escolha com alternativas sorteadas, é necessário ter pelo menos 4 perguntas na coleção.\n\nVocê tem ${_collection.questions.length} pergunta(s).\n\nDeseja personalizar as alternativas?",
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text("Cancelar"),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey[800],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              _showCustomizeOptionsDialog();
+                            },
+                            child: const Text(
+                              "Personalizar",
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                  return;
+                }
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => StudyPage(
+                      collection: _collection,
+                      mode: StudyMode.multipleChoice,
+                    ),
+                  ),
+                );
+              },
+              child: const Text(
+                "Aceitar",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showCustomizeOptionsDialog() {
+    int currentQuestionIndex = 0;
+    final List<TextEditingController> optionControllers = [];
+    final List<Question> questionsToCustomize = List.from(
+      _collection.questions,
+    );
+
+    // Initialize controllers for first question
+    void _initializeControllers(int index) {
+      optionControllers.clear();
+      final question = questionsToCustomize[index];
+      if (question.multipleChoiceOptions != null) {
+        // Use existing options
+        for (var option in question.multipleChoiceOptions!) {
+          optionControllers.add(TextEditingController(text: option));
+        }
+      } else {
+        // Initialize with empty options
+        for (int i = 0; i < 4; i++) {
+          if (i == 0) {
+            optionControllers.add(TextEditingController(text: question.answer));
+          } else {
+            optionControllers.add(TextEditingController());
+          }
+        }
+      }
+    }
+
+    _initializeControllers(0);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            final currentQuestion = questionsToCustomize[currentQuestionIndex];
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15.0),
+              ),
+              title: Text(
+                "Personalizar Alternativas (${currentQuestionIndex + 1}/${questionsToCustomize.length})",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Pergunta: ${currentQuestion.question}",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ...List.generate(4, (index) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: TextFormField(
+                          controller: optionControllers[index],
+                          decoration: InputDecoration(
+                            labelText: "Alternativa ${index + 1}",
+                            filled: true,
+                            fillColor: Colors.grey[100],
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide.none,
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+              actions: [
+                if (currentQuestionIndex > 0)
+                  TextButton(
+                    onPressed: () {
+                      // Save current question options
+                      final options = optionControllers
+                          .map((c) => c.text.trim())
+                          .where((text) => text.isNotEmpty)
+                          .toList();
+                      final correctAnswer =
+                          questionsToCustomize[currentQuestionIndex].answer
+                              .trim();
+
+                      // Validate: must have at least 2 options and include the correct answer
+                      if (options.length >= 2 &&
+                          options.any(
+                            (opt) =>
+                                opt.toLowerCase() ==
+                                correctAnswer.toLowerCase(),
+                          )) {
+                        questionsToCustomize[currentQuestionIndex]
+                                .multipleChoiceOptions =
+                            options;
+                      }
+                      setState(() {
+                        currentQuestionIndex--;
+                        _initializeControllers(currentQuestionIndex);
+                      });
+                    },
+                    child: const Text("Anterior"),
+                  ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text("Cancelar"),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[800],
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: () {
+                    // Save current question options
+                    final options = optionControllers
+                        .map((c) => c.text.trim())
+                        .where((text) => text.isNotEmpty)
+                        .toList();
+                    final correctAnswer =
+                        questionsToCustomize[currentQuestionIndex].answer
+                            .trim();
+
+                    // Validate: must have at least 2 options and include the correct answer
+                    if (options.length < 2) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            "É necessário pelo menos 2 alternativas",
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (!options.any(
+                      (opt) => opt.toLowerCase() == correctAnswer.toLowerCase(),
+                    )) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            "A resposta correta deve estar entre as alternativas",
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+
+                    questionsToCustomize[currentQuestionIndex]
+                            .multipleChoiceOptions =
+                        options;
+
+                    if (currentQuestionIndex <
+                        questionsToCustomize.length - 1) {
+                      setState(() {
+                        currentQuestionIndex++;
+                        _initializeControllers(currentQuestionIndex);
+                      });
+                    } else {
+                      // Save all and start study
+                      this.setState(() {
+                        for (int i = 0; i < questionsToCustomize.length; i++) {
+                          final index = _collection.questions.indexWhere(
+                            (q) => q.id == questionsToCustomize[i].id,
+                          );
+                          if (index != -1) {
+                            _collection.questions[index].multipleChoiceOptions =
+                                questionsToCustomize[i].multipleChoiceOptions;
+                          }
+                        }
+                      });
+                      Navigator.of(context).pop();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => StudyPage(
+                            collection: _collection,
+                            mode: StudyMode.multipleChoice,
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  child: Text(
+                    currentQuestionIndex < questionsToCustomize.length - 1
+                        ? "Próxima"
+                        : "Concluir",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
