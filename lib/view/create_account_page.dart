@@ -1,5 +1,6 @@
 import 'package:flashcard_app/bloc/auth_bloc.dart';
 import 'package:flashcard_app/model/user.dart';
+import 'package:flashcard_app/provider/firestore_user_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -53,6 +54,8 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
           password: _passwordController.text.trim(),
         ),
       );
+
+      FirestoreUserProvider.helper.insertUser(widget.user);
 
       Navigator.pop(context);
     } else {

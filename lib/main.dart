@@ -1,4 +1,4 @@
-import 'package:firebase_dart/firebase_dart.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flashcard_app/bloc/auth_bloc.dart';
 import 'package:flashcard_app/bloc/manager_bloc.dart';
 import 'package:flashcard_app/view/main_page.dart';
@@ -7,12 +7,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    FirebaseDart.setup();
-  } catch (e) {
-    debugPrint('FirebaseDart.setup() failed: $e');
-  }
-
   await Firebase.initializeApp(
     options: FirebaseOptions(
       apiKey: "AIzaSyB3U5SHnp1XG1JSauySoowEZ9KwrccXrcM",
