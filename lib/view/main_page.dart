@@ -1,6 +1,7 @@
 import 'package:flashcard_app/model/user.dart';
 import 'package:flashcard_app/model/collection.dart';
 import 'package:flashcard_app/view/create_account_page.dart';
+import 'package:flashcard_app/view/collection_details_page.dart';
 import 'package:flutter/material.dart';
 import 'dart:math';
 
@@ -24,7 +25,7 @@ class _MainPageState extends State<MainPage> {
       name: name,
       color: color,
     );
-    
+
     setState(() {
       _collections.add(newCollection);
     });
@@ -165,135 +166,150 @@ class _MainPageState extends State<MainPage> {
                               padding: EdgeInsets.fromLTRB(15, 0, 15, 15),
                               child: Column(
                                 children: [
-                            SizedBox(height: 15),
-                            // Primeira linha - cores básicas
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                Colors.red,
-                                Colors.orange,
-                                Colors.yellow,
-                                Colors.green,
-                                Colors.blue,
-                                Colors.purple,
-                              ].map((color) {
-                                return GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      selectedColor = color;
-                                      isColorMode = true;
-                                    });
-                                  },
-                                  child: Container(
-                                    width: 35,
-                                    height: 35,
-                                    decoration: BoxDecoration(
-                                      color: color,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: selectedColor == color 
-                                            ? Colors.black 
-                                            : Colors.grey[300]!,
-                                        width: selectedColor == color ? 3 : 1,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.1),
-                                          blurRadius: 2,
-                                          offset: Offset(0, 1),
-                                        ),
-                                      ],
-                                    ),
+                                  SizedBox(height: 15),
+                                  // Primeira linha - cores básicas
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children:
+                                        [
+                                          Colors.red,
+                                          Colors.orange,
+                                          Colors.yellow,
+                                          Colors.green,
+                                          Colors.blue,
+                                          Colors.purple,
+                                        ].map((color) {
+                                          return GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                selectedColor = color;
+                                                isColorMode = true;
+                                              });
+                                            },
+                                            child: Container(
+                                              width: 35,
+                                              height: 35,
+                                              decoration: BoxDecoration(
+                                                color: color,
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: selectedColor == color
+                                                      ? Colors.black
+                                                      : Colors.grey[300]!,
+                                                  width: selectedColor == color
+                                                      ? 3
+                                                      : 1,
+                                                ),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black
+                                                        .withOpacity(0.1),
+                                                    blurRadius: 2,
+                                                    offset: Offset(0, 1),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
                                   ),
-                                );
-                              }).toList(),
-                            ),
-                            SizedBox(height: 10),
-                            // Segunda linha - cores adicionais
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                Colors.pink,
-                                Colors.teal,
-                                Colors.indigo,
-                                Colors.amber,
-                                Colors.cyan,
-                                Colors.deepOrange,
-                              ].map((color) {
-                                return GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      selectedColor = color;
-                                      isColorMode = true;
-                                    });
-                                  },
-                                  child: Container(
-                                    width: 35,
-                                    height: 35,
-                                    decoration: BoxDecoration(
-                                      color: color,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: selectedColor == color 
-                                            ? Colors.black 
-                                            : Colors.grey[300]!,
-                                        width: selectedColor == color ? 3 : 1,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.1),
-                                          blurRadius: 2,
-                                          offset: Offset(0, 1),
-                                        ),
-                                      ],
-                                    ),
+                                  SizedBox(height: 10),
+                                  // Segunda linha - cores adicionais
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children:
+                                        [
+                                          Colors.pink,
+                                          Colors.teal,
+                                          Colors.indigo,
+                                          Colors.amber,
+                                          Colors.cyan,
+                                          Colors.deepOrange,
+                                        ].map((color) {
+                                          return GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                selectedColor = color;
+                                                isColorMode = true;
+                                              });
+                                            },
+                                            child: Container(
+                                              width: 35,
+                                              height: 35,
+                                              decoration: BoxDecoration(
+                                                color: color,
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: selectedColor == color
+                                                      ? Colors.black
+                                                      : Colors.grey[300]!,
+                                                  width: selectedColor == color
+                                                      ? 3
+                                                      : 1,
+                                                ),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black
+                                                        .withOpacity(0.1),
+                                                    blurRadius: 2,
+                                                    offset: Offset(0, 1),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
                                   ),
-                                );
-                              }).toList(),
-                            ),
-                            SizedBox(height: 10),
-                            // Terceira linha - tons de cinza
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                Colors.grey[300]!,
-                                Colors.grey[500]!,
-                                Colors.grey[700]!,
-                                Colors.brown,
-                                Colors.lime,
-                                Colors.deepPurple,
-                              ].map((color) {
-                                return GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      selectedColor = color;
-                                      isColorMode = true;
-                                    });
-                                  },
-                                  child: Container(
-                                    width: 35,
-                                    height: 35,
-                                    decoration: BoxDecoration(
-                                      color: color,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: selectedColor == color 
-                                            ? Colors.black 
-                                            : Colors.grey[300]!,
-                                        width: selectedColor == color ? 3 : 1,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.1),
-                                          blurRadius: 2,
-                                          offset: Offset(0, 1),
-                                        ),
-                                      ],
-                                    ),
+                                  SizedBox(height: 10),
+                                  // Terceira linha - tons de cinza
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children:
+                                        [
+                                          Colors.grey[300]!,
+                                          Colors.grey[500]!,
+                                          Colors.grey[700]!,
+                                          Colors.brown,
+                                          Colors.lime,
+                                          Colors.deepPurple,
+                                        ].map((color) {
+                                          return GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                selectedColor = color;
+                                                isColorMode = true;
+                                              });
+                                            },
+                                            child: Container(
+                                              width: 35,
+                                              height: 35,
+                                              decoration: BoxDecoration(
+                                                color: color,
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: selectedColor == color
+                                                      ? Colors.black
+                                                      : Colors.grey[300]!,
+                                                  width: selectedColor == color
+                                                      ? 3
+                                                      : 1,
+                                                ),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black
+                                                        .withOpacity(0.1),
+                                                    blurRadius: 2,
+                                                    offset: Offset(0, 1),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
                                   ),
-                                );
-                              }).toList(),
-                            ),
                                 ],
                               ),
                             ),
@@ -335,7 +351,9 @@ class _MainPageState extends State<MainPage> {
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: Colors.grey[300]!),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey[300]!,
+                                  ),
                                 ),
                                 contentPadding: EdgeInsets.symmetric(
                                   horizontal: 12,
@@ -376,7 +394,10 @@ class _MainPageState extends State<MainPage> {
                           ),
                           onPressed: () {
                             if (formKey.currentState!.validate()) {
-                              _addCollection(nameController.text, selectedColor);
+                              _addCollection(
+                                nameController.text,
+                                selectedColor,
+                              );
                               Navigator.of(context).pop();
                             }
                           },
@@ -633,7 +654,10 @@ class _MainPageState extends State<MainPage> {
                   bottom: 65,
                   right: 65,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(30),
@@ -665,7 +689,10 @@ class _MainPageState extends State<MainPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8.0,
+                      vertical: 16.0,
+                    ),
                     child: Text(
                       'Suas Coleções',
                       style: TextStyle(
@@ -687,8 +714,27 @@ class _MainPageState extends State<MainPage> {
                       itemBuilder: (context, index) {
                         final collection = _collections[index];
                         return GestureDetector(
-                          onTap: () {
-                            // TODO: Navigate to collection details
+                         onTap: () async {
+                            final updatedCollection = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CollectionDetailsPage(
+                                  collection: collection,
+                                ),
+                              ),
+                            );
+
+                            if (updatedCollection != null &&
+                                updatedCollection is Collection) {
+                              setState(() {
+                                final index = _collections.indexWhere(
+                                  (c) => c.id == updatedCollection.id,
+                                );
+                                if (index != -1) {
+                                  _collections[index] = updatedCollection;
+                                }
+                              });
+                            }
                           },
                           child: Container(
                             decoration: BoxDecoration(
@@ -706,7 +752,8 @@ class _MainPageState extends State<MainPage> {
                               padding: const EdgeInsets.all(16.0),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     collection.name,
@@ -719,7 +766,8 @@ class _MainPageState extends State<MainPage> {
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
                                         '${collection.flashcardCount} flashcards',
