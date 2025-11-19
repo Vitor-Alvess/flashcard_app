@@ -224,41 +224,61 @@ class _StudyPageState extends State<StudyPage> {
   }
 
   Widget _buildWrittenMode() {
-    if (_showAnswer) {
-      final isCorrect = _selectedAnswer == "correct";
-      return Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16.0),
-            decoration: BoxDecoration(
-              color: isCorrect ? Colors.green[100] : Colors.red[100],
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isCorrect ? "Correto!" : "Incorreto",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: isCorrect ? Colors.green[900] : Colors.red[900],
+    final isCorrect = _selectedAnswer == "correct";
+    
+    return Column(
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          width: double.infinity,
+          constraints: const BoxConstraints(
+            minHeight: 80,
+          ),
+          padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            color: _showAnswer
+                ? (isCorrect ? Colors.green[100] : Colors.red[100])
+                : Colors.grey[800],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: _showAnswer
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isCorrect ? "Correto!" : "Incorreto",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isCorrect ? Colors.green[900] : Colors.red[900],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Resposta correta: ${_shuffledQuestions[_currentIndex].answer}",
+                      style: const TextStyle(fontSize: 14, color: Colors.black87),
+                    ),
+                  ],
+                )
+              : TextField(
+                  controller: _answerController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: "Escreva sua resposta...",
+                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    border: InputBorder.none,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  "Resposta correta: ${_shuffledQuestions[_currentIndex].answer}",
-                  style: TextStyle(fontSize: 14, color: Colors.black87),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
+        ),
+        const SizedBox(height: 16),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          child: SizedBox(
+            key: ValueKey(_showAnswer),
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _nextQuestion,
+              onPressed: _showAnswer ? _nextQuestion : _checkAnswer,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.grey[800],
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -266,50 +286,10 @@ class _StudyPageState extends State<StudyPage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text(
-                "Próxima",
-                style: TextStyle(color: Colors.white, fontSize: 16),
+              child: Text(
+                _showAnswer ? "Próxima" : "Verificar",
+                style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
-            ),
-          ),
-        ],
-      );
-    }
-
-    return Column(
-      children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16.0),
-          decoration: BoxDecoration(
-            color: Colors.grey[800],
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: TextField(
-            controller: _answerController,
-            style: TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: "Escreva sua resposta...",
-              hintStyle: TextStyle(color: Colors.grey[400]),
-              border: InputBorder.none,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _checkAnswer,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.grey[800],
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text(
-              "Verificar",
-              style: TextStyle(color: Colors.white, fontSize: 16),
             ),
           ),
         ),
@@ -321,58 +301,102 @@ class _StudyPageState extends State<StudyPage> {
     final options = _multipleChoiceOptions[question.id] ?? [];
     final correctAnswer = question.answer;
 
-    if (_showAnswer) {
-      return Column(
-        children: [
-          ...options.map((option) {
-            final isCorrect = option == correctAnswer;
-            final isSelected = _selectedAnswer == option;
-            return Container(
+    return Column(
+      children: [
+        ...options.map((option) {
+          final isCorrect = option == correctAnswer;
+          final isSelected = _selectedAnswer == option;
+          
+          return GestureDetector(
+            onTap: _showAnswer
+                ? null
+                : () {
+                    setState(() {
+                      _selectedAnswer = option;
+                    });
+                  },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
               margin: const EdgeInsets.only(bottom: 12),
               width: double.infinity,
-              padding: const EdgeInsets.all(16.0),
+              constraints: const BoxConstraints(
+                minHeight: 60,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
               decoration: BoxDecoration(
-                color: isCorrect
-                    ? Colors.green[100]
-                    : (isSelected && !isCorrect)
-                    ? Colors.red[100]
-                    : Colors.grey[200],
+                color: _showAnswer
+                    ? (isCorrect
+                        ? Colors.green[100]
+                        : (isSelected && !isCorrect)
+                            ? Colors.red[100]
+                            : Colors.grey[200])
+                    : Colors.grey[800],
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isCorrect ? Colors.green : Colors.transparent,
-                  width: 2,
+                  color: _showAnswer && isCorrect
+                      ? Colors.green
+                      : Colors.transparent,
+                  width: _showAnswer && isCorrect ? 2 : 0,
                 ),
               ),
               child: Row(
                 children: [
-                  Radio<String>(
-                    value: option,
-                    groupValue: _selectedAnswer,
-                    onChanged: null,
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: Radio<String>(
+                      value: option,
+                      groupValue: _selectedAnswer,
+                      onChanged: _showAnswer ? null : (value) {
+                        setState(() {
+                          _selectedAnswer = value;
+                        });
+                      },
+                      activeColor: _showAnswer
+                          ? (isCorrect ? Colors.green : Colors.grey)
+                          : Colors.white,
+                    ),
                   ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       option,
                       style: TextStyle(
-                        color: Colors.black,
+                        color: _showAnswer ? Colors.black : Colors.white,
                         fontSize: 16,
-                        fontWeight: isCorrect
+                        fontWeight: _showAnswer && isCorrect
                             ? FontWeight.bold
                             : FontWeight.normal,
                       ),
                     ),
                   ),
-                  if (isCorrect)
-                    Icon(Icons.check_circle, color: Colors.green[900]),
+                  if (_showAnswer && isCorrect)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: Icon(
+                        Icons.check_circle,
+                        color: Colors.green[900],
+                        size: 24,
+                      ),
+                    ),
+                  if (!_showAnswer && isSelected)
+                    const SizedBox(width: 32), // Reserve space for icon
                 ],
               ),
-            );
-          }),
-          const SizedBox(height: 16),
-          SizedBox(
+            ),
+          );
+        }),
+        const SizedBox(height: 16),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          child: SizedBox(
+            key: ValueKey(_showAnswer),
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _nextQuestion,
+              onPressed: _showAnswer
+                  ? _nextQuestion
+                  : (_selectedAnswer != null ? _checkAnswer : null),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.grey[800],
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -380,58 +404,10 @@ class _StudyPageState extends State<StudyPage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text(
-                "Próxima",
-                style: TextStyle(color: Colors.white, fontSize: 16),
+              child: Text(
+                _showAnswer ? "Próxima" : "Verificar",
+                style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
-            ),
-          ),
-        ],
-      );
-    }
-
-    return Column(
-      children: [
-        ...options.map((option) {
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            width: double.infinity,
-            padding: const EdgeInsets.all(16.0),
-            decoration: BoxDecoration(
-              color: Colors.grey[800],
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: RadioListTile<String>(
-              value: option,
-              groupValue: _selectedAnswer,
-              onChanged: (value) {
-                setState(() {
-                  _selectedAnswer = value;
-                });
-              },
-              title: Text(
-                option,
-                style: TextStyle(color: Colors.white, fontSize: 16),
-              ),
-              activeColor: Colors.white,
-            ),
-          );
-        }),
-        const SizedBox(height: 16),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _selectedAnswer != null ? _checkAnswer : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.grey[800],
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text(
-              "Verificar",
-              style: TextStyle(color: Colors.white, fontSize: 16),
             ),
           ),
         ),
@@ -440,78 +416,81 @@ class _StudyPageState extends State<StudyPage> {
   }
 
   Widget _buildSelfAssessmentMode() {
-    if (_showAnswer) {
-      return Row(
-        children: [
-          Expanded(
-            child: ElevatedButton(
-              onPressed: () => _selfAssess(false),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red[300],
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      child: _showAnswer
+          ? Row(
+              key: const ValueKey('assessment'),
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => _selfAssess(false),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red[300],
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      "Errei",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              child: const Text(
-                "Errei",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => _selfAssess(true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green[300],
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      "Acertei",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : SizedBox(
+              key: const ValueKey('show_answer'),
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _showAnswer = true;
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey[300],
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  "Ver resposta",
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: ElevatedButton(
-              onPressed: () => _selfAssess(true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green[300],
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                "Acertei",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: () {
-          setState(() {
-            _showAnswer = true;
-          });
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.grey[300],
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: const Text(
-          "Ver resposta",
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
     );
   }
 

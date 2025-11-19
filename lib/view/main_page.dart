@@ -714,13 +714,29 @@ class _MainPageState extends State<MainPage> {
                       itemBuilder: (context, index) {
                         final collection = _collections[index];
                         return GestureDetector(
-                         onTap: () async {
+                          onTap: () async {
                             final updatedCollection = await Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (context) => CollectionDetailsPage(
+                              PageRouteBuilder(
+                                pageBuilder: (context, animation, secondaryAnimation) =>
+                                    CollectionDetailsPage(
                                   collection: collection,
                                 ),
+                                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                  const begin = Offset(1.0, 0.0);
+                                  const end = Offset.zero;
+                                  const curve = Curves.easeInOut;
+
+                                  var tween = Tween(begin: begin, end: end).chain(
+                                    CurveTween(curve: curve),
+                                  );
+
+                                  return SlideTransition(
+                                    position: animation.drive(tween),
+                                    child: child,
+                                  );
+                                },
+                                transitionDuration: const Duration(milliseconds: 300),
                               ),
                             );
 
