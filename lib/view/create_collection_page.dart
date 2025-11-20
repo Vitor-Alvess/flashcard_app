@@ -1,10 +1,13 @@
+import 'package:flashcard_app/model/user.dart';
 import 'package:flutter/material.dart';
 import 'package:flashcard_app/model/collection.dart';
 import 'package:flashcard_app/model/flashcard.dart';
 import 'package:flashcard_app/provider/firestore_collection_provider.dart';
 
 class CreateCollectionPage extends StatefulWidget {
-  const CreateCollectionPage({super.key});
+  final User user;
+
+  const CreateCollectionPage({super.key, required this.user});
 
   @override
   State<CreateCollectionPage> createState() => _CreateCollectionPageState();
@@ -95,6 +98,7 @@ class _CreateCollectionPageState extends State<CreateCollectionPage> {
 
       final newId = await FirestoreCollectionProvider.helper.insertCollection(
         collection,
+        widget.user.email,
       );
 
       final created = Collection(

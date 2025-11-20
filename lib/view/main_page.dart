@@ -1,5 +1,7 @@
 import 'package:flashcard_app/bloc/auth_bloc.dart';
+import 'package:flashcard_app/provider/firestore_collection_provider.dart';
 import 'package:flashcard_app/provider/firestore_user_provider.dart';
+import 'package:flashcard_app/view/collection_grid_view.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flashcard_app/model/user.dart';
 import 'package:flashcard_app/model/collection.dart';
@@ -19,6 +21,7 @@ class _MainPageState extends State<MainPage> {
   List<Collection> _collections = [];
 
   Future<User?>? _userFuture;
+  Future<List<Collection>>? _collectionsFuture;
 
   int _selectedIndex = 0;
   String get name => _user.name;
@@ -50,6 +53,9 @@ class _MainPageState extends State<MainPage> {
           _userFuture = FirestoreUserProvider.helper.findUserByEmail(
             state.username,
           );
+
+          _collectionsFuture = FirestoreCollectionProvider.helper
+              .getAllCollections(state.username);
         } else {
           _userFuture = null;
         }
@@ -119,8 +125,13 @@ class _MainPageState extends State<MainPage> {
             ],
           ),
         ),
-        body: _collections.isEmpty
-            ? Stack(
+        body: FutureBuilder<List<Collection>>(
+          future: _collectionsFuture,
+          builder: (context, snapshot) {
+            final collections = snapshot.data;
+
+            if (collections == null || collections.isEmpty) {
+              return Stack(
                 children: [
                   Padding(
                     padding: const EdgeInsets.all(60.0),
@@ -173,99 +184,11 @@ class _MainPageState extends State<MainPage> {
                     ),
                   ),
                 ],
-              )
-            : Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8.0,
-                        vertical: 16.0,
-                      ),
-                      child: Text(
-                        'Suas Coleções',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: GridView.builder(
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 1.2,
-                        ),
-                        itemCount: _collections.length,
-                        itemBuilder: (context, index) {
-                          final collection = _collections[index];
-                          return GestureDetector(
-                            onTap: () {},
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: collection.color,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
-                                    blurRadius: 8,
-                                    offset: Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      collection.name,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          '${collection.flashcardCount} flashcards',
-                                          style: TextStyle(
-                                            color: Colors.white.withOpacity(
-                                              0.8,
-                                            ),
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                        Icon(
-                                          Icons.arrow_forward_ios,
-                                          color: Colors.white.withOpacity(0.8),
-                                          size: 16,
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              );
+            }
+            return CollectionGridView(collections: collections);
+          },
+        ),
         floatingActionButton: BlocBuilder<AuthBloc, AuthState>(
           builder: (context, state) {
             final signedIn = state is Authenticated;
@@ -275,7 +198,7 @@ class _MainPageState extends State<MainPage> {
                   final created = await Navigator.push<Collection?>(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const CreateCollectionPage(),
+                      builder: (_) => CreateCollectionPage(user: _user),
                     ),
                   );
 
