@@ -6,32 +6,32 @@ class FirestoreCollectionProvider {
   FirestoreCollectionProvider._();
 
   final CollectionReference collectionsRoot = FirebaseFirestore.instance
-      .collection('collections');
+      .collection('users-collections');
 
-  String collectionsDocRef = 'colecoes';
-
-  CollectionReference get _innerCollection =>
-      collectionsRoot.doc(collectionsDocRef).collection('collections');
-
-  Future<String> insertCollection(Collection collection) async {
-    final docRef = await _innerCollection.add(collection.toMap());
+  Future<String> insertCollection(
+    Collection collection,
+    String userEmail,
+  ) async {
+    final docRef = await collectionsRoot
+        .doc(userEmail)
+        .collection("collections")
+        .add(collection.toMap());
     return docRef.id;
   }
 
-  Future<void> setCollection(String id, Collection collection) async {
-    await _innerCollection.doc(id).set(collection.toMap());
-  }
-
-  Future<List<Collection>> getAllCollections() async {
-    final query = await _innerCollection.get();
-    return query.docs.map((d) {
+  Future<List<Collection>> getAllCollections(String userEmail) async {
+    final querySnapshot = await collectionsRoot
+        .doc(userEmail)
+        .collection("collections")
+        .get();
+    return querySnapshot.docs.map((d) {
       final data = _normalizeDocData(d.data());
       return Collection.fromMap(data);
     }).toList();
   }
 
   Stream<List<Collection>> collectionsStream() {
-    return _innerCollection.snapshots().map((snap) {
+    return collectionsRoot.snapshots().map((snap) {
       return snap.docs.map((d) {
         final data = _normalizeDocData(d.data());
         return Collection.fromMap(data);
@@ -39,19 +39,42 @@ class FirestoreCollectionProvider {
     });
   }
 
-  Future<Collection?> getCollectionById(String id) async {
-    final doc = await _innerCollection.doc(id).get();
-    if (!doc.exists) return null;
-    final data = _normalizeDocData(doc.data()!);
-    return Collection.fromMap(data);
+  /// Stream the collections for a specific user (by email or id used as doc)
+  Stream<List<Collection>> collectionsStreamForUser(String userEmail) {
+    return collectionsRoot
+        .doc(userEmail)
+        .collection('collections')
+        .snapshots()
+        .map(
+          (snap) => snap.docs.map((d) {
+            final data = _normalizeDocData(d.data());
+            return Collection.fromMap(data..['id'] = d.id);
+          }).toList(),
+        );
   }
 
-  Future<void> updateCollection(String id, Map<String, dynamic> data) async {
-    await _innerCollection.doc(id).update(data);
+  Future<void> updateCollection(
+    String id,
+    Map<String, dynamic> data,
+    String userEmail,
+  ) async {
+    await collectionsRoot
+        .doc(userEmail)
+        .collection("collections")
+        .doc(id)
+        .update(data);
   }
 
-  Future<void> deleteCollection(String id) async {
-    await _innerCollection.doc(id).delete();
+  Future<void> deleteCollection(
+    String id,
+    Map<String, dynamic> data,
+    String userEmail,
+  ) async {
+    await collectionsRoot
+        .doc(userEmail)
+        .collection("collections")
+        .doc(id)
+        .delete();
   }
 
   Map<String, dynamic> _normalizeDocData(Object? rawData) {
