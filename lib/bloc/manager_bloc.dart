@@ -8,15 +8,7 @@ class ManagerBloc extends Bloc<ManagerEvent, ManagerState> {
   StreamSubscription<List<Collection>>? _subscription;
 
   ManagerBloc() : super(InsertState(const [])) {
-    try {
-      _subscription = FirestoreCollectionProvider.helper
-          .collectionsStream()
-          .listen((list) => add(BackendEvent(collectionList: list)));
-    } catch (e, st) {
-      print('ManagerBloc: failed to subscribe to collectionsStream: $e\n$st');
-      _subscription = null;
-    }
-    ;
+    _updateSubscription(null);
 
     on<SubmitEvent>((event, emit) async {
       final col = event.collection;
@@ -60,6 +52,22 @@ class ManagerBloc extends Bloc<ManagerEvent, ManagerState> {
         event.collectionId,
       );
     });
+
+    on<SetUserIdEvent>((event, emit) {
+      _updateSubscription(event.userId);
+    });
+  }
+
+  void _updateSubscription(String? userId) {
+    _subscription?.cancel();
+    try {
+      _subscription = FirestoreCollectionProvider.helper
+          .collectionsStream(userId: userId)
+          .listen((list) => add(BackendEvent(collectionList: list)));
+    } catch (e, st) {
+      print('ManagerBloc: failed to subscribe to collectionsStream: $e\n$st');
+      _subscription = null;
+    }
   }
 
   @override
@@ -96,6 +104,11 @@ class DeleteEvent extends ManagerEvent {
 class ToggleUsefulEvent extends ManagerEvent {
   Collection collection;
   ToggleUsefulEvent({required this.collection});
+}
+
+class SetUserIdEvent extends ManagerEvent {
+  String? userId;
+  SetUserIdEvent({required this.userId});
 }
 
 abstract class ManagerState {

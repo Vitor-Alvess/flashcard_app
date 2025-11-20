@@ -1,10 +1,12 @@
 import 'package:flashcard_app/bloc/auth_bloc.dart';
+import 'package:flashcard_app/bloc/user_bloc.dart';
 import 'package:flashcard_app/model/user.dart';
 import 'package:flashcard_app/provider/firestore_user_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker/image_picker.dart';
+import 'dart:async';
 import 'dart:io';
 
 class CreateAccountPage extends StatefulWidget {
@@ -48,21 +50,103 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
       widget.user.profilePicturePath = _selectedImagePath;
 
       try {
-        // Primeiro registra no Firebase Auth
-        BlocProvider.of<AuthBloc>(context).add(
+        // Primeiro registra no Firebase Auth diretamente para capturar erros
+        final authBloc = BlocProvider.of<AuthBloc>(context);
+        bool registrationSuccess = false;
+        String? errorMessage;
+        
+        // Listener temporário para capturar erros e sucesso
+        StreamSubscription? subscription;
+        final completer = Completer<bool>();
+        
+        subscription = authBloc.stream.listen((authState) {
+          if (authState is AuthError) {
+            final errorMsg = authState.message.toLowerCase();
+            
+            if (errorMsg.contains('email-already-in-use') || 
+                errorMsg.contains('email já está em uso')) {
+              errorMessage = 'Este email já está em uso';
+            } else if (errorMsg.contains('invalid-email') || 
+                       errorMsg.contains('invalid_email') ||
+                       errorMsg.contains('email inválido') ||
+                       errorMsg.contains('invalid email')) {
+              errorMessage = 'Email inválido';
+            } else if (errorMsg.contains('weak-password') || 
+                       errorMsg.contains('senha muito fraca')) {
+              errorMessage = 'Senha muito fraca';
+            } else if (errorMsg.contains('network') || 
+                       errorMsg.contains('rede')) {
+              errorMessage = 'Erro de conexão. Verifique sua internet.';
+            } else {
+              errorMessage = 'Erro ao criar conta. Tente novamente.';
+            }
+            
+            if (!completer.isCompleted) {
+              completer.complete(false);
+            }
+          } else if (authState is Authenticated) {
+            registrationSuccess = true;
+            if (!completer.isCompleted) {
+              completer.complete(true);
+            }
+          }
+        });
+        
+        authBloc.add(
           RegisterUser(
             username: widget.user.email,
             password: _passwordController.text.trim(),
           ),
         );
 
-        // Aguarda um pouco para garantir que o Auth foi processado
-        await Future.delayed(const Duration(milliseconds: 1000));
+        // Aguarda o resultado do Auth (timeout de 3 segundos)
+        final result = await completer.future.timeout(
+          const Duration(seconds: 3),
+          onTimeout: () => false,
+        );
+        
+        // Cancela o listener
+        await subscription.cancel();
+        
+        // Verifica se houve erro
+        if (!result || errorMessage != null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(errorMessage ?? 'Erro ao criar conta. Tente novamente.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+
+        // Verifica se o usuário foi autenticado com sucesso
+        if (!registrationSuccess) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Erro ao criar conta. Tente novamente.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
         
         // Salva o usuário no Firestore
         await FirestoreUserProvider.helper.insertUser(widget.user);
 
+        // Aguarda um pouco para garantir que o usuário foi salvo
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        // Carrega o usuário no UserBloc
         if (mounted) {
+          final authState = authBloc.state;
+          if (authState is Authenticated) {
+            context.read<UserBloc>().add(LoadUser(email: authState.username));
+          }
+          
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Conta criada com sucesso!'),
@@ -73,9 +157,22 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
         }
       } catch (e) {
         if (mounted) {
+          String errorMsg = 'Erro ao criar conta';
+          final errorString = e.toString().toLowerCase();
+          
+          if (errorString.contains('invalid-email') || 
+              errorString.contains('invalid_email') ||
+              errorString.contains('invalid email')) {
+            errorMsg = 'Email inválido';
+          } else if (errorString.contains('email-already-in-use')) {
+            errorMsg = 'Este email já está em uso';
+          } else if (errorString.contains('weak-password')) {
+            errorMsg = 'Senha muito fraca';
+          }
+          
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Erro ao criar conta: $e'),
+              content: Text(errorMsg),
               backgroundColor: Colors.red,
             ),
           );

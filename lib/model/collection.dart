@@ -9,6 +9,7 @@ class Collection {
   int _flashcardCount;
   List<Flashcard> _flashcards;
   String? _imagePath;
+  String? _userId;
 
   Collection({
     required String id,
@@ -18,13 +19,15 @@ class Collection {
     int flashcardCount = 0,
     required List<Flashcard> flashcards,
     required String? imagePath,
+    String? userId,
   }) : _id = id,
        _name = name,
        _color = color,
        _createdAt = createdAt ?? DateTime.now(),
        _flashcardCount = flashcardCount,
        _flashcards = flashcards,
-       _imagePath = imagePath;
+       _imagePath = imagePath,
+       _userId = userId;
 
   String get id => _id;
   String get name => _name;
@@ -33,6 +36,7 @@ class Collection {
   List<Flashcard> get flashcards => _flashcards;
   int get flashcardCount => _flashcards.length;
   String? get imagePath => _imagePath;
+  String? get userId => _userId;
 
   set name(String name) {
     _name = name;
@@ -44,6 +48,10 @@ class Collection {
 
   set imagePath(String? path) {
     _imagePath = path;
+  }
+
+  set userId(String? userId) {
+    _userId = userId;
   }
 
   void addQuestion(Flashcard question) {
@@ -64,6 +72,7 @@ class Collection {
       'imagePath': _imagePath != null && _imagePath!.isNotEmpty
           ? _imagePath
           : null,
+      'userId': _userId,
     };
   }
 
@@ -79,6 +88,7 @@ class Collection {
               .toList() ??
           [],
       imagePath: map['imagePath'],
+      userId: map['userId'],
     );
   }
 }

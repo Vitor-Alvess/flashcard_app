@@ -23,6 +23,8 @@ class DeleteHistory extends HistoryEvent {
   DeleteHistory({required this.historyId});
 }
 
+class ResetHistory extends HistoryEvent {}
+
 abstract class HistoryState {}
 
 class HistoryInitial extends HistoryState {}
@@ -48,6 +50,7 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
     on<LoadHistory>(_onLoadHistory);
     on<AddHistory>(_onAddHistory);
     on<DeleteHistory>(_onDeleteHistory);
+    on<ResetHistory>(_onResetHistory);
   }
 
   Future<void> _onLoadHistory(LoadHistory event, Emitter<HistoryState> emit) async {
@@ -85,6 +88,11 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
     } catch (e) {
       emit(HistoryError(message: e.toString()));
     }
+  }
+
+  void _onResetHistory(ResetHistory event, Emitter<HistoryState> emit) {
+    _subscription?.cancel();
+    emit(HistoryInitial());
   }
 
   @override

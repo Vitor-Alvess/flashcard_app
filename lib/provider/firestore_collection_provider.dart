@@ -26,9 +26,13 @@ class FirestoreCollectionProvider {
     await _innerCollection.doc(id).set(collection.toMap());
   }
 
-  Future<List<Collection>> getAllCollections() async {
-    final query = await _innerCollection.get();
-    return query.docs.map((d) {
+  Future<List<Collection>> getAllCollections({String? userId}) async {
+    Query query = _innerCollection;
+    if (userId != null && userId.isNotEmpty) {
+      query = query.where('userId', isEqualTo: userId);
+    }
+    final snapshot = await query.get();
+    return snapshot.docs.map((d) {
       final data = _normalizeDocData(d.data());
       final historyMap = Map<String, dynamic>.from(data);
       historyMap['id'] = d.id;
@@ -36,8 +40,12 @@ class FirestoreCollectionProvider {
     }).toList();
   }
 
-  Stream<List<Collection>> collectionsStream() {
-    return _innerCollection.snapshots().map((snap) {
+  Stream<List<Collection>> collectionsStream({String? userId}) {
+    Query query = _innerCollection;
+    if (userId != null && userId.isNotEmpty) {
+      query = query.where('userId', isEqualTo: userId);
+    }
+    return query.snapshots().map((snap) {
       return snap.docs.map((d) {
         final data = _normalizeDocData(d.data());
         final historyMap = Map<String, dynamic>.from(data);

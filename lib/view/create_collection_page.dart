@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flashcard_app/model/collection.dart';
 import 'package:flashcard_app/model/flashcard.dart';
 import 'package:flashcard_app/provider/firestore_collection_provider.dart';
+import 'package:flashcard_app/bloc/auth_bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class CreateCollectionPage extends StatefulWidget {
   const CreateCollectionPage({super.key});
@@ -90,6 +92,13 @@ class _CreateCollectionPageState extends State<CreateCollectionPage> {
     setState(() => _isSaving = true);
 
     try {
+      // Obter email do usuário logado
+      String? userId;
+      final authState = context.read<AuthBloc>().state;
+      if (authState is Authenticated) {
+        userId = authState.username;
+      }
+      
       final tempId = DateTime.now().millisecondsSinceEpoch.toString();
       final collection = Collection(
         id: tempId,
@@ -98,6 +107,7 @@ class _CreateCollectionPageState extends State<CreateCollectionPage> {
         imagePath: '',
         flashcards: flashcards,
         flashcardCount: flashcards.length,
+        userId: userId,
       );
 
       final newId = await FirestoreCollectionProvider.helper.insertCollection(
@@ -112,6 +122,7 @@ class _CreateCollectionPageState extends State<CreateCollectionPage> {
         flashcards: collection.flashcards,
         flashcardCount: collection.flashcardCount,
         createdAt: DateTime.now(),
+        userId: collection.userId,
       );
 
       Navigator.of(context).pop(created);

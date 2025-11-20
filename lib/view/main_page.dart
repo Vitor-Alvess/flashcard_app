@@ -1,4 +1,5 @@
 import 'package:flashcard_app/bloc/auth_bloc.dart';
+import 'package:flashcard_app/bloc/history_bloc.dart';
 import 'package:flashcard_app/bloc/manager_bloc.dart';
 import 'package:flashcard_app/bloc/user_bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -30,6 +31,14 @@ class _MainPageState extends State<MainPage> {
     String? imagePath,
   }) {
     final tempId = DateTime.now().millisecondsSinceEpoch.toString();
+
+    // Obter email do usuário logado
+    String? userId;
+    final authState = context.read<AuthBloc>().state;
+    if (authState is Authenticated) {
+      userId = authState.username;
+    }
+
     final newCollection = Collection(
       id: tempId,
       name: name,
@@ -37,6 +46,7 @@ class _MainPageState extends State<MainPage> {
       flashcards: [],
       imagePath: imagePath,
       createdAt: DateTime.now(),
+      userId: userId,
     );
 
     context.read<ManagerBloc>().add(SubmitEvent(collection: newCollection));
@@ -609,6 +619,14 @@ class _MainPageState extends State<MainPage> {
                           onPressed: () {
                             if (formKey.currentState!.validate()) {
                               Navigator.of(context).pop();
+
+                              // Obter email do usuário logado
+                              String? userId;
+                              final authState = context.read<AuthBloc>().state;
+                              if (authState is Authenticated) {
+                                userId = authState.username;
+                              }
+
                               final updatedCollection = Collection(
                                 id: collection.id,
                                 name: nameController.text,
@@ -616,6 +634,7 @@ class _MainPageState extends State<MainPage> {
                                 flashcards: collection.flashcards,
                                 imagePath: selectedImagePath,
                                 createdAt: collection.createdAt,
+                                userId: userId ?? collection.userId,
                               );
                               context.read<ManagerBloc>().add(
                                 SubmitEvent(collection: updatedCollection),
@@ -1164,8 +1183,13 @@ class _MainPageState extends State<MainPage> {
           listener: (context, state) {
             if (state is Authenticated) {
               context.read<UserBloc>().add(LoadUser(email: state.username));
+              context.read<ManagerBloc>().add(
+                SetUserIdEvent(userId: state.username),
+              );
             } else {
               context.read<UserBloc>().add(ClearUser());
+              context.read<ManagerBloc>().add(SetUserIdEvent(userId: null));
+              context.read<HistoryBloc>().add(ResetHistory());
             }
           },
         ),
@@ -1186,22 +1210,32 @@ class _MainPageState extends State<MainPage> {
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white, fontSize: 25),
               ),
-              BlocBuilder<UserBloc, UserState>(
-                builder: (context, userState) {
-                  final user = userState is UserInitial
-                      ? userState.user
-                      : userState is UserLoaded
-                      ? userState.user
-                      : userState is UserUpdated
-                      ? userState.user
-                      : User.empty();
-                  if (user.isLoggedIn) {
-                    return Text(
-                      'Olá, ${user.name}!',
-                      style: const TextStyle(fontSize: 15, color: Colors.white),
-                    );
+              BlocBuilder<AuthBloc, AuthState>(
+                builder: (context, authState) {
+                  if (authState is! Authenticated) {
+                    return const SizedBox.shrink();
                   }
-                  return const SizedBox.shrink();
+                  return BlocBuilder<UserBloc, UserState>(
+                    builder: (context, userState) {
+                      final user = userState is UserInitial
+                          ? userState.user
+                          : userState is UserLoaded
+                          ? userState.user
+                          : userState is UserUpdated
+                          ? userState.user
+                          : User.empty();
+                      if (user.isLoggedIn && user.name.isNotEmpty) {
+                        return Text(
+                          'Olá, ${user.name}!',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            color: Colors.white,
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  );
                 },
               ),
             ],
