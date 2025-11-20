@@ -1,5 +1,6 @@
 import 'package:flashcard_app/bloc/auth_bloc.dart';
 import 'package:flashcard_app/provider/firestore_user_provider.dart';
+import 'package:flashcard_app/provider/firestore_collection_provider.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flashcard_app/model/user.dart';
 import 'package:flashcard_app/model/collection.dart';
@@ -30,18 +31,48 @@ class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
   String get name => _user.name;
 
-  void _addCollection(String name, Color color, {String? imagePath}) {
+  Future<void> _addCollection(
+    BuildContext context,
+    String name,
+    Color color, {
+    String? imagePath,
+  }) async {
+    final tempId = DateTime.now().millisecondsSinceEpoch.toString();
     final newCollection = Collection(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: tempId,
       name: name,
       color: color,
       flashcards: [],
       imagePath: imagePath,
     );
 
-    setState(() {
-      _collections.add(newCollection);
-    });
+    try {
+      final newId = await FirestoreCollectionProvider.helper.insertCollection(
+        newCollection,
+      );
+
+      final created = Collection(
+        id: newId,
+        name: newCollection.name,
+        color: newCollection.color,
+        flashcards: newCollection.flashcards,
+        imagePath: newCollection.imagePath,
+        createdAt: DateTime.now(),
+      );
+
+      setState(() {
+        _collections.add(created);
+      });
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao salvar coleção: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _deleteCollection(Collection collection) {
@@ -1123,12 +1154,13 @@ class _MainPageState extends State<MainPage> {
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          onPressed: () {
+                          onPressed: () async {
                             if (formKey.currentState!.validate()) {
                               final colorToSave = selectedColor;
                               final imagePathToSave = selectedImagePath;
                               Navigator.of(context).pop();
-                              _addCollection(
+                              await _addCollection(
+                                context,
                                 nameController.text,
                                 colorToSave,
                                 imagePath: imagePathToSave,
@@ -1602,10 +1634,31 @@ class _MainPageState extends State<MainPage> {
             // Página Perfil (índice 2)
             ProfilePage(
               user: _user,
-              onUserUpdate: (updatedUser) {
-                setState(() {
-                  _user = updatedUser;
-                });
+              onUserUpdate: (updatedUser) async {
+                // Salvar no Firestore
+                final authState = context.read<AuthBloc>().state;
+                if (authState is Authenticated) {
+                  try {
+                    await FirestoreUserProvider.helper.updateUser(
+                      authState.username,
+                      updatedUser,
+                    );
+                    setState(() {
+                      _user = updatedUser;
+                    });
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Erro ao salvar usuário: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                } else {
+                  setState(() {
+                    _user = updatedUser;
+                  });
+                }
               },
               onLogout: () {
                 context.read<AuthBloc>().add(Logout());
