@@ -132,7 +132,8 @@ class _MainPageState extends State<MainPage> {
     Color selectedColor = collection.color;
     bool isColorMode = true;
     String? selectedImagePath = collection.imagePath;
-    bool isImageMode = collection.imagePath != null;
+    bool isImageMode =
+        collection.imagePath != null && collection.imagePath!.isNotEmpty;
 
     showDialog(
       context: context,
@@ -1466,7 +1467,11 @@ class _MainPageState extends State<MainPage> {
                                           child: Stack(
                                             children: [
                                               // Imagem de fundo se houver
-                                              if (collection.imagePath != null)
+                                              if (collection.imagePath !=
+                                                      null &&
+                                                  collection
+                                                      .imagePath!
+                                                      .isNotEmpty)
                                                 ClipRRect(
                                                   borderRadius:
                                                       BorderRadius.circular(16),

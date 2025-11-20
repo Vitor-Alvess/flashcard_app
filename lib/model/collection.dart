@@ -61,7 +61,9 @@ class Collection {
       'color': _color.toARGB32(),
       'createdAt': _createdAt.toIso8601String(),
       'flashcards': _flashcards.map((f) => f.toJson()).toList(),
-      'imagePath': _imagePath,
+      'imagePath': _imagePath != null && _imagePath!.isNotEmpty
+          ? _imagePath
+          : null,
     };
   }
 
