@@ -60,9 +60,7 @@ class Collection {
       'name': _name,
       'color': _color.toARGB32(),
       'createdAt': _createdAt.toIso8601String(),
-      'flashcards': _flashcards
-          .map((f) => {'question': f.question, 'answer': f.answer})
-          .toList(),
+      'flashcards': _flashcards.map((f) => f.toJson()).toList(),
       'imagePath': _imagePath,
     };
   }

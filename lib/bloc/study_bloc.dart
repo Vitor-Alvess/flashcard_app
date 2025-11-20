@@ -75,11 +75,13 @@ class StudyCompleted extends StudyState {
   final int correctAnswers;
   final int totalQuestions;
   final int percentage;
+  final Map<String, bool> questionResults;
 
   StudyCompleted({
     required this.correctAnswers,
     required this.totalQuestions,
     required this.percentage,
+    required this.questionResults,
   });
 }
 
@@ -222,6 +224,7 @@ class StudyBloc extends Bloc<StudyEvent, StudyState> {
         correctAnswers: currentState.correctAnswers,
         totalQuestions: totalQuestions,
         percentage: percentage,
+        questionResults: currentState.questionResults,
       ));
     } else {
       emit(StudyInProgress(

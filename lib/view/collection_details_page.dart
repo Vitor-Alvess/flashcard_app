@@ -1,9 +1,11 @@
+import 'package:flashcard_app/bloc/manager_bloc.dart';
 import 'package:flashcard_app/bloc/study_bloc.dart';
 import 'package:flashcard_app/model/collection.dart';
 import 'package:flashcard_app/model/flashcard.dart';
 import 'package:flashcard_app/model/user.dart';
 import 'package:flashcard_app/view/study_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class CollectionDetailsPage extends StatefulWidget {
   final Collection collection;
@@ -934,7 +936,13 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
       appBar: AppBar(
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(_collection),
+          onPressed: () {
+            // Salvar a coleção atualizada no banco antes de voltar
+            context.read<ManagerBloc>().add(
+                  SubmitEvent(collection: _collection),
+                );
+            Navigator.of(context).pop(_collection);
+          },
         ),
         title: Text(
           _collection.name,

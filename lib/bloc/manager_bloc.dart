@@ -21,16 +21,31 @@ class ManagerBloc extends Bloc<ManagerEvent, ManagerState> {
     ;
 
     on<SubmitEvent>((event, emit) async {
-      if (state is UpdateState) {
-        final col = event.collection;
+      final col = event.collection;
+      // Primeiro verificar na lista local (mais rápido)
+      final existsInLocal = state.collectionList.any((c) => c.id == col.id);
+      
+      if (existsInLocal) {
+        // Coleção existe localmente, fazer update
         await FirestoreCollectionProvider.helper.updateCollection(
           col.id,
           col.toMap(),
         );
       } else {
-        await FirestoreCollectionProvider.helper.insertCollection(
-          event.collection,
-        );
+        // Verificar se a coleção já existe no banco
+        final existingCollection = await FirestoreCollectionProvider.helper.getCollectionById(col.id);
+        if (existingCollection != null) {
+          // Coleção existe no banco, fazer update
+          await FirestoreCollectionProvider.helper.updateCollection(
+            col.id,
+            col.toMap(),
+          );
+        } else {
+          // Coleção não existe, fazer insert
+          await FirestoreCollectionProvider.helper.insertCollection(
+            event.collection,
+          );
+        }
       }
     });
 

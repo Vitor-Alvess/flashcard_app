@@ -14,6 +14,12 @@ class FirestoreCollectionProvider {
       collectionsRoot.doc(collectionsDocRef).collection('collections');
 
   Future<String> insertCollection(Collection collection) async {
+    // Se a coleção já tem um ID, usar setCollection para manter o mesmo ID
+    if (collection.id.isNotEmpty) {
+      await _innerCollection.doc(collection.id).set(collection.toMap());
+      return collection.id;
+    }
+    // Se não tem ID, criar novo documento e retornar o ID gerado
     final docRef = await _innerCollection.add(collection.toMap());
     return docRef.id;
   }
@@ -26,7 +32,10 @@ class FirestoreCollectionProvider {
     final query = await _innerCollection.get();
     return query.docs.map((d) {
       final data = _normalizeDocData(d.data());
-      return Collection.fromMap(data);
+      // Garantir que o ID do documento seja usado
+      final historyMap = Map<String, dynamic>.from(data);
+      historyMap['id'] = d.id;
+      return Collection.fromMap(historyMap);
     }).toList();
   }
 
@@ -34,7 +43,10 @@ class FirestoreCollectionProvider {
     return _innerCollection.snapshots().map((snap) {
       return snap.docs.map((d) {
         final data = _normalizeDocData(d.data());
-        return Collection.fromMap(data);
+        // Garantir que o ID do documento seja usado
+        final historyMap = Map<String, dynamic>.from(data);
+        historyMap['id'] = d.id;
+        return Collection.fromMap(historyMap);
       }).toList();
     });
   }
@@ -43,7 +55,10 @@ class FirestoreCollectionProvider {
     final doc = await _innerCollection.doc(id).get();
     if (!doc.exists) return null;
     final data = _normalizeDocData(doc.data()!);
-    return Collection.fromMap(data);
+    // Garantir que o ID do documento seja usado
+    final historyMap = Map<String, dynamic>.from(data);
+    historyMap['id'] = doc.id;
+    return Collection.fromMap(historyMap);
   }
 
   Future<void> updateCollection(String id, Map<String, dynamic> data) async {
