@@ -1634,32 +1634,6 @@ class _MainPageState extends State<MainPage> {
             // Página Perfil (índice 2)
             ProfilePage(
               user: _user,
-              onUserUpdate: (updatedUser) async {
-                // Salvar no Firestore
-                final authState = context.read<AuthBloc>().state;
-                if (authState is Authenticated) {
-                  try {
-                    await FirestoreUserProvider.helper.updateUser(
-                      authState.username,
-                      updatedUser,
-                    );
-                    setState(() {
-                      _user = updatedUser;
-                    });
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Erro ao salvar usuário: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                } else {
-                  setState(() {
-                    _user = updatedUser;
-                  });
-                }
-              },
               onLogout: () {
                 context.read<AuthBloc>().add(Logout());
                 setState(() {

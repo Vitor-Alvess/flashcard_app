@@ -6,15 +6,9 @@ import 'dart:io';
 
 class ProfilePage extends StatefulWidget {
   final User user;
-  final Function(User) onUserUpdate;
   final VoidCallback onLogout;
 
-  const ProfilePage({
-    super.key,
-    required this.user,
-    required this.onUserUpdate,
-    required this.onLogout,
-  });
+  const ProfilePage({super.key, required this.user, required this.onLogout});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -151,7 +145,6 @@ class _ProfilePageState extends State<ProfilePage> {
                             setState(() {
                               _currentUser.name = value;
                             });
-                            widget.onUserUpdate(_currentUser);
                           },
                         ),
                         const SizedBox(height: 16),
@@ -163,7 +156,6 @@ class _ProfilePageState extends State<ProfilePage> {
                             setState(() {
                               _currentUser.email = value;
                             });
-                            widget.onUserUpdate(_currentUser);
                           },
                         ),
                         const SizedBox(height: 16),
@@ -177,7 +169,6 @@ class _ProfilePageState extends State<ProfilePage> {
                               setState(() {
                                 _currentUser.age = age;
                               });
-                              widget.onUserUpdate(_currentUser);
                             }
                           },
                         ),
@@ -385,7 +376,6 @@ class _ProfilePageState extends State<ProfilePage> {
                     setState(() {
                       _currentUser.profilePicturePath = null;
                     });
-                    widget.onUserUpdate(_currentUser);
                   },
                 ),
               ],
@@ -412,7 +402,6 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() {
         _currentUser.profilePicturePath = image.path;
       });
-      widget.onUserUpdate(_currentUser);
     }
   }
 
