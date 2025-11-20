@@ -18,8 +18,6 @@ class _MainPageState extends State<MainPage> {
   final User _user = User.empty();
   List<Collection> _collections = [];
 
-  // Cache the future for the currently authenticated user's profile to avoid
-  // re-fetching every rebuild. Updated via BlocListener when auth changes.
   Future<User?>? _userFuture;
 
   int _selectedIndex = 0;
