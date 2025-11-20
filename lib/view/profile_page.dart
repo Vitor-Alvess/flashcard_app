@@ -21,10 +21,8 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
-    // Inicializa o UserBloc com o usuário atual se ainda não estiver carregado
     final userState = context.read<UserBloc>().state;
     if (userState is UserInitial && !userState.user.isLoggedIn) {
-      // Se o usuário não está vazio no widget, atualiza o bloc
       if (widget.user.isLoggedIn) {
         context.read<UserBloc>().add(UpdateUserName(name: widget.user.name));
         context.read<UserBloc>().add(UpdateUserEmail(email: widget.user.email));
@@ -56,7 +54,6 @@ class _ProfilePageState extends State<ProfilePage> {
                         ? userState.user
                         : widget.user;
 
-            // Se está autenticado mas o usuário não foi carregado, tenta carregar
             if (isAuthenticated && !currentUser.isLoggedIn) {
               final authState = context.read<AuthBloc>().state;
               if (authState is Authenticated) {
@@ -75,7 +72,6 @@ class _ProfilePageState extends State<ProfilePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const SizedBox(height: 24),
-                          // Profile Picture with Edit Button
                           Center(
                             child: Stack(
                               children: [
@@ -158,7 +154,6 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                           ),
                           const SizedBox(height: 32),
-                          // User Info Card
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.all(20),
@@ -202,7 +197,6 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                           ),
                           const SizedBox(height: 32),
-                          // Logout Button
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
@@ -380,7 +374,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 ? userState.user
                 : widget.user;
     if (currentUser.profilePicturePath != null) {
-      // Se já tem foto, mostra opções de trocar ou remover
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -421,8 +414,7 @@ class _ProfilePageState extends State<ProfilePage> {
           );
         },
       );
-    } else {
-      // Se não tem foto, abre direto a galeria
+    } else {  
       _pickImageFromGallery();
     }
   }

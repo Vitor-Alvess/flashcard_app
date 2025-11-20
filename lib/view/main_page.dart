@@ -32,7 +32,6 @@ class _MainPageState extends State<MainPage> {
   }) {
     final tempId = DateTime.now().millisecondsSinceEpoch.toString();
 
-    // Obter email do usuário logado
     String? userId;
     final authState = context.read<AuthBloc>().state;
     if (authState is Authenticated) {
@@ -620,7 +619,6 @@ class _MainPageState extends State<MainPage> {
                             if (formKey.currentState!.validate()) {
                               Navigator.of(context).pop();
 
-                              // Obter email do usuário logado
                               String? userId;
                               final authState = context.read<AuthBloc>().state;
                               if (authState is Authenticated) {
@@ -866,8 +864,7 @@ class _MainPageState extends State<MainPage> {
                           ),
                         ),
                         child: Column(
-                          children: [
-                            // Header com botão de voltar
+                          children: [ 
                             Container(
                               padding: EdgeInsets.all(15),
                               child: Row(
@@ -1196,7 +1193,6 @@ class _MainPageState extends State<MainPage> {
         BlocListener<ManagerBloc, ManagerState>(
           listener: (context, state) {
             if (state is InsertState && state.collectionList.isEmpty) {
-              // Pode mostrar mensagem se necessário
             }
           },
         ),
@@ -1277,7 +1273,6 @@ class _MainPageState extends State<MainPage> {
         body: IndexedStack(
           index: _selectedIndex,
           children: [
-            // Página Início (índice 0)
             BlocBuilder<AuthBloc, AuthState>(
               builder: (context, authState) {
                 final isAuthenticated = authState is Authenticated;
@@ -1413,7 +1408,6 @@ class _MainPageState extends State<MainPage> {
                                       final collection = collections[index];
                                       return GestureDetector(
                                         onTap: () async {
-                                          // Verificar autenticação antes de abrir detalhes
                                           final authState = context
                                               .read<AuthBloc>()
                                               .state;
@@ -1500,7 +1494,6 @@ class _MainPageState extends State<MainPage> {
                                           ),
                                           child: Stack(
                                             children: [
-                                              // Imagem de fundo se houver
                                               if (collection.imagePath !=
                                                       null &&
                                                   collection
@@ -1554,7 +1547,6 @@ class _MainPageState extends State<MainPage> {
                                                               },
                                                         ),
                                                 ),
-                                              // Overlay escuro para melhorar legibilidade do texto
                                               Container(
                                                 decoration: BoxDecoration(
                                                   borderRadius:
@@ -1571,7 +1563,6 @@ class _MainPageState extends State<MainPage> {
                                                   ),
                                                 ),
                                               ),
-                                              // Botão de menu (três pontinhos)
                                               Positioned(
                                                 top: 8,
                                                 right: 8,
@@ -1597,7 +1588,6 @@ class _MainPageState extends State<MainPage> {
                                                   ),
                                                 ),
                                               ),
-                                              // Conteúdo
                                               Padding(
                                                 padding: const EdgeInsets.all(
                                                   16.0,
@@ -1662,7 +1652,6 @@ class _MainPageState extends State<MainPage> {
                 );
               },
             ),
-            // Página Histórico (índice 1)
             BlocBuilder<UserBloc, UserState>(
               builder: (context, userState) {
                 final user = userState is UserInitial
@@ -1675,7 +1664,6 @@ class _MainPageState extends State<MainPage> {
                 return HistoryPage(user: user);
               },
             ),
-            // Página Perfil (índice 2)
             BlocBuilder<UserBloc, UserState>(
               builder: (context, userState) {
                 final user = userState is UserInitial
@@ -1691,7 +1679,7 @@ class _MainPageState extends State<MainPage> {
                     context.read<AuthBloc>().add(Logout());
                     context.read<UserBloc>().add(ClearUser());
                     setState(() {
-                      _selectedIndex = 0; // Volta para o início após deslogar
+                        _selectedIndex = 0;
                     });
                   },
                 );
