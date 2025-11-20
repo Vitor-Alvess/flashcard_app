@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flashcard_app/bloc/auth_bloc.dart';
+import 'package:flashcard_app/bloc/history_bloc.dart';
 import 'package:flashcard_app/bloc/manager_bloc.dart';
 import 'package:flashcard_app/bloc/study_bloc.dart';
 import 'package:flashcard_app/bloc/user_bloc.dart';
@@ -33,6 +34,7 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (context) => ManagerBloc()),
         BlocProvider(create: (context) => StudyBloc()),
         BlocProvider(create: (context) => UserBloc()),
+        BlocProvider(create: (context) => HistoryBloc()),
       ],
       child: MaterialApp(
         title: 'Flutter Demo',

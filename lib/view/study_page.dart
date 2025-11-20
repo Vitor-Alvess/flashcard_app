@@ -1,5 +1,8 @@
+import 'package:flashcard_app/bloc/auth_bloc.dart';
+import 'package:flashcard_app/bloc/history_bloc.dart';
 import 'package:flashcard_app/bloc/study_bloc.dart';
 import 'package:flashcard_app/model/collection.dart';
+import 'package:flashcard_app/model/study_history.dart';
 import 'package:flashcard_app/view/results_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -36,23 +39,44 @@ class _StudyPageState extends State<StudyPage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<StudyBloc, StudyState>(
-      listener: (context, state) {
-        if (state is StudyCompleted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ResultsPage(
-                correctAnswers: state.correctAnswers,
-                totalQuestions: state.totalQuestions,
-                percentage: state.percentage,
-              ),
-            ),
-          );
-        } else if (state is StudyInProgress && !state.showAnswer) {
-          _answerController.clear();
-        }
-      },
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<StudyBloc, StudyState>(
+          listener: (context, state) {
+            if (state is StudyCompleted) {
+              final authState = context.read<AuthBloc>().state;
+              if (authState is Authenticated) {
+                final history = StudyHistory(
+                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                  collectionId: widget.collection.id,
+                  collectionName: widget.collection.name,
+                  mode: widget.mode,
+                  correctAnswers: state.correctAnswers,
+                  totalQuestions: state.totalQuestions,
+                  percentage: state.percentage,
+                  completedAt: DateTime.now(),
+                  userId: authState.username,
+                  questionResults: state.questionResults,
+                );
+                context.read<HistoryBloc>().add(AddHistory(history: history));
+              }
+
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ResultsPage(
+                    correctAnswers: state.correctAnswers,
+                    totalQuestions: state.totalQuestions,
+                    percentage: state.percentage,
+                  ),
+                ),
+              );
+            } else if (state is StudyInProgress && !state.showAnswer) {
+              _answerController.clear();
+            }
+          },
+        ),
+      ],
       child: BlocBuilder<StudyBloc, StudyState>(
         builder: (context, state) {
           if (state is StudyInitial) {

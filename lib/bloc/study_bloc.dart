@@ -155,11 +155,13 @@ class StudyBloc extends Bloc<StudyEvent, StudyState> {
     }
 
     final questionResults = Map<String, bool>.from(currentState.questionResults);
-    if (!questionResults.containsKey(currentQuestion.id)) {
+    final wasAlreadyAnswered = questionResults.containsKey(currentQuestion.id);
+    if (!wasAlreadyAnswered) {
       questionResults[currentQuestion.id] = isCorrect;
     }
 
-    final correctAnswers = isCorrect && !questionResults.containsKey(currentQuestion.id)
+    // Incrementar apenas se a resposta estava correta E não foi respondida antes
+    final correctAnswers = isCorrect && !wasAlreadyAnswered
         ? currentState.correctAnswers + 1
         : currentState.correctAnswers;
 
@@ -184,11 +186,13 @@ class StudyBloc extends Bloc<StudyEvent, StudyState> {
     final currentQuestion = currentState.currentQuestion;
 
     final questionResults = Map<String, bool>.from(currentState.questionResults);
-    if (!questionResults.containsKey(currentQuestion.id)) {
+    final wasAlreadyAnswered = questionResults.containsKey(currentQuestion.id);
+    if (!wasAlreadyAnswered) {
       questionResults[currentQuestion.id] = event.correct;
     }
 
-    final correctAnswers = event.correct && !questionResults.containsKey(currentQuestion.id)
+    // Incrementar apenas se a resposta estava correta E não foi respondida antes
+    final correctAnswers = event.correct && !wasAlreadyAnswered
         ? currentState.correctAnswers + 1
         : currentState.correctAnswers;
 
@@ -216,12 +220,16 @@ class StudyBloc extends Bloc<StudyEvent, StudyState> {
 
     if (currentState.isFinished) {
       final totalQuestions = currentState.shuffledQuestions.length;
+      // Recalcular acertos baseado no questionResults para garantir precisão
+      final actualCorrectAnswers = currentState.questionResults.values
+          .where((isCorrect) => isCorrect == true)
+          .length;
       final percentage = totalQuestions > 0
-          ? (currentState.correctAnswers / totalQuestions * 100).round()
+          ? (actualCorrectAnswers / totalQuestions * 100).round()
           : 0;
 
       emit(StudyCompleted(
-        correctAnswers: currentState.correctAnswers,
+        correctAnswers: actualCorrectAnswers,
         totalQuestions: totalQuestions,
         percentage: percentage,
         questionResults: currentState.questionResults,
