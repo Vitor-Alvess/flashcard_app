@@ -65,7 +65,15 @@ class _CreateCollectionPageState extends State<CreateCollectionPage> {
       final q = c['q']!.text.trim();
       final a = c['a']!.text.trim();
       if (q.isNotEmpty || a.isNotEmpty) {
-        flashcards.add(Flashcard(question: q, answer: a));
+        flashcards.add(
+          Flashcard(
+            id:
+                DateTime.now().millisecondsSinceEpoch.toString() +
+                flashcards.length.toString(),
+            question: q,
+            answer: a,
+          ),
+        );
       }
     }
 
@@ -89,6 +97,7 @@ class _CreateCollectionPageState extends State<CreateCollectionPage> {
         id: tempId,
         name: title,
         color: _selectedColor,
+        imagePath: '',
         flashcards: flashcards,
         flashcardCount: flashcards.length,
       );
@@ -101,6 +110,7 @@ class _CreateCollectionPageState extends State<CreateCollectionPage> {
         id: newId,
         name: collection.name,
         color: collection.color,
+        imagePath: collection.imagePath,
         flashcards: collection.flashcards,
         flashcardCount: collection.flashcardCount,
         createdAt: DateTime.now(),

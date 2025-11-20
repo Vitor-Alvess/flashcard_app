@@ -3,20 +3,14 @@ import 'package:flashcard_app/provider/firestore_user_provider.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flashcard_app/model/user.dart';
 import 'package:flashcard_app/model/collection.dart';
-<<<<<<< HEAD
-import 'package:flashcard_app/view/create_account_page.dart';
 import 'package:flashcard_app/view/collection_details_page.dart';
 import 'package:flashcard_app/view/history_page.dart';
 import 'package:flashcard_app/view/profile_page.dart';
+import 'package:flashcard_app/view/login_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-=======
-import 'package:flashcard_app/view/create_collection_page.dart';
-import 'package:flashcard_app/view/login_dialog.dart';
-import 'package:flutter/material.dart';
->>>>>>> 876a3b6ae1293a3d690e1f5975dd095b948edd7b
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -36,12 +30,12 @@ class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
   String get name => _user.name;
 
-<<<<<<< HEAD
   void _addCollection(String name, Color color, {String? imagePath}) {
     final newCollection = Collection(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       name: name,
       color: color,
+      flashcards: [],
       imagePath: imagePath,
     );
 
@@ -1154,20 +1148,6 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-=======
-  final List<Widget> _pages = [
-    Center(
-      child: Text("Início", style: TextStyle(color: Colors.white)),
-    ),
-    Center(
-      child: Text("Histórico", style: TextStyle(color: Colors.white)),
-    ),
-    Center(
-      child: Text("Perfil", style: TextStyle(color: Colors.white)),
-    ),
-  ];
-
->>>>>>> 876a3b6ae1293a3d690e1f5975dd095b948edd7b
   void _showLoginDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -1252,559 +1232,417 @@ class _MainPageState extends State<MainPage> {
             ],
           ),
         ),
-<<<<<<< HEAD
-      ),
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: [
-          // Página Início (índice 0)
-          !_user.isLoggedIn
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.lock_outline,
-                        size: 80,
-                        color: Colors.grey[600],
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        "Faça login para acessar suas coleções",
-                        style: TextStyle(color: Colors.white70, fontSize: 18),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () {
-                          _showLoginDialog(context);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[800],
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 32,
-                            vertical: 16,
-                          ),
+        body: IndexedStack(
+          index: _selectedIndex,
+          children: [
+            // Página Início (índice 0)
+            BlocBuilder<AuthBloc, AuthState>(
+              builder: (context, state) {
+                final isAuthenticated = state is Authenticated;
+                if (!isAuthenticated) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.lock_outline,
+                          size: 80,
+                          color: Colors.grey[600],
                         ),
-                        child: const Text(
-                          "Fazer Login",
-                          style: TextStyle(color: Colors.white),
+                        const SizedBox(height: 24),
+                        Text(
+                          "Faça login para acessar suas coleções",
+                          style: TextStyle(color: Colors.white70, fontSize: 18),
+                          textAlign: TextAlign.center,
                         ),
-                      ),
-                    ],
-                  ),
-                )
-              : _collections.isEmpty
-              ? Stack(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(60.0),
-                      child: Center(
-                        child: Column(
-                          children: [
-                            Image.asset(
-                              'assets/images/sleepingCat.png',
-                              width: MediaQuery.of(context).size.width * 0.5,
-                              height: MediaQuery.of(context).size.height * 0.3,
-                              fit: BoxFit.contain,
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            _showLoginDialog(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey[800],
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 32,
+                              vertical: 16,
                             ),
-                            Text(
-                              'Não há nada aqui, ainda...',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 65,
-                      right: 65,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: const Text(
-                          'Crie sua primeira coleção!',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
+                          ),
+                          child: const Text(
+                            "Fazer Login",
+                            style: TextStyle(color: Colors.white),
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                    Positioned(
-                      bottom: 25,
-                      right: 75,
-                      child: Image.asset(
-                        'assets/images/arrowRight.png',
-                        height: 40,
-                        width: 40,
-                      ),
-                    ),
-                  ],
-                )
-              : Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8.0,
-                          vertical: 16.0,
-                        ),
-                        child: Text(
-                          'Suas Coleções',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: GridView.builder(
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 16,
-                                childAspectRatio: 1.2,
-                              ),
-                          itemCount: _collections.length,
-                          itemBuilder: (context, index) {
-                            final collection = _collections[index];
-                            return GestureDetector(
-                              onTap: () async {
-                                // Verificar autenticação antes de abrir detalhes
-                                if (!_user.isLoggedIn) {
-                                  _showLoginDialog(context);
-                                  return;
-                                }
-                                final updatedCollection = await Navigator.push(
-                                  context,
-                                  PageRouteBuilder(
-                                    pageBuilder:
-                                        (
-                                          context,
-                                          animation,
-                                          secondaryAnimation,
-                                        ) => CollectionDetailsPage(
-                                          collection: collection,
-                                          user: _user,
-                                        ),
-                                    transitionsBuilder:
-                                        (
-                                          context,
-                                          animation,
-                                          secondaryAnimation,
-                                          child,
-                                        ) {
-                                          const begin = Offset(1.0, 0.0);
-                                          const end = Offset.zero;
-                                          const curve = Curves.easeInOut;
-
-                                          var tween = Tween(
-                                            begin: begin,
-                                            end: end,
-                                          ).chain(CurveTween(curve: curve));
-
-                                          return SlideTransition(
-                                            position: animation.drive(tween),
-                                            child: child,
-                                          );
-                                        },
-                                    transitionDuration: const Duration(
-                                      milliseconds: 300,
-                                    ),
+                  );
+                }
+                return _collections.isEmpty
+                    ? Stack(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(60.0),
+                            child: Center(
+                              child: Column(
+                                children: [
+                                  Image.asset(
+                                    'assets/images/sleepingCat.png',
+                                    width:
+                                        MediaQuery.of(context).size.width * 0.5,
+                                    height:
+                                        MediaQuery.of(context).size.height *
+                                        0.3,
+                                    fit: BoxFit.contain,
                                   ),
-                                );
-
-                                if (updatedCollection != null &&
-                                    updatedCollection is Collection) {
-                                  setState(() {
-                                    final index = _collections.indexWhere(
-                                      (c) => c.id == updatedCollection.id,
-                                    );
-                                    if (index != -1) {
-                                      _collections[index] = updatedCollection;
-                                    }
-                                  });
-                                }
-                              },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: collection.color,
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.2),
-                                      blurRadius: 8,
-                                      offset: Offset(0, 4),
-                                    ),
-                                  ],
+                                  Text(
+                                    'Não há nada aqui, ainda...',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 65,
+                            right: 65,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              child: const Text(
+                                'Crie sua primeira coleção!',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                child: Stack(
-                                  children: [
-                                    // Imagem de fundo se houver
-                                    if (collection.imagePath != null)
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(16),
-                                        child: kIsWeb
-                                            ? Image.network(
-                                                collection.imagePath!,
-                                                width: double.infinity,
-                                                height: double.infinity,
-                                                fit: BoxFit.cover,
-                                                errorBuilder:
-                                                    (
-                                                      context,
-                                                      error,
-                                                      stackTrace,
-                                                    ) {
-                                                      return Container(
-                                                        color: collection.color,
-                                                      );
-                                                    },
-                                              )
-                                            : Image.file(
-                                                File(collection.imagePath!),
-                                                width: double.infinity,
-                                                height: double.infinity,
-                                                fit: BoxFit.cover,
-                                                errorBuilder:
-                                                    (
-                                                      context,
-                                                      error,
-                                                      stackTrace,
-                                                    ) {
-                                                      return Container(
-                                                        color: collection.color,
-                                                      );
-                                                    },
-                                              ),
-                                      ),
-                                    // Overlay escuro para melhorar legibilidade do texto
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(16),
-                                        gradient: LinearGradient(
-                                          begin: Alignment.topCenter,
-                                          end: Alignment.bottomCenter,
-                                          colors: [
-                                            Colors.transparent,
-                                            Colors.black.withOpacity(0.7),
-                                          ],
-                                        ),
-                                      ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 25,
+                            right: 75,
+                            child: Image.asset(
+                              'assets/images/arrowRight.png',
+                              height: 40,
+                              width: 40,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8.0,
+                                vertical: 16.0,
+                              ),
+                              child: Text(
+                                'Suas Coleções',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: GridView.builder(
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 2,
+                                      crossAxisSpacing: 16,
+                                      mainAxisSpacing: 16,
+                                      childAspectRatio: 1.2,
                                     ),
-                                    // Botão de menu (três pontinhos)
-                                    Positioned(
-                                      top: 8,
-                                      right: 8,
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          _showCollectionMenu(
+                                itemCount: _collections.length,
+                                itemBuilder: (context, index) {
+                                  final collection = _collections[index];
+                                  return GestureDetector(
+                                    onTap: () async {
+                                      // Verificar autenticação antes de abrir detalhes
+                                      final authState = context
+                                          .read<AuthBloc>()
+                                          .state;
+                                      if (authState is! Authenticated) {
+                                        _showLoginDialog(context);
+                                        return;
+                                      }
+                                      final updatedCollection =
+                                          await Navigator.push(
                                             context,
-                                            collection,
-                                          );
-                                        },
-                                        child: Container(
-                                          width: 32,
-                                          height: 32,
-                                          decoration: BoxDecoration(
-                                            color: Colors.black54,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Icon(
-                                            Icons.more_vert,
-                                            color: Colors.white,
-                                            size: 18,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    // Conteúdo
-                                    Padding(
-                                      padding: const EdgeInsets.all(16.0),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            collection.name,
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
+                                            PageRouteBuilder(
+                                              pageBuilder:
+                                                  (
+                                                    context,
+                                                    animation,
+                                                    secondaryAnimation,
+                                                  ) => CollectionDetailsPage(
+                                                    collection: collection,
+                                                    user: _user,
+                                                  ),
+                                              transitionsBuilder:
+                                                  (
+                                                    context,
+                                                    animation,
+                                                    secondaryAnimation,
+                                                    child,
+                                                  ) {
+                                                    const begin = Offset(
+                                                      1.0,
+                                                      0.0,
+                                                    );
+                                                    const end = Offset.zero;
+                                                    const curve =
+                                                        Curves.easeInOut;
+
+                                                    var tween =
+                                                        Tween(
+                                                          begin: begin,
+                                                          end: end,
+                                                        ).chain(
+                                                          CurveTween(
+                                                            curve: curve,
+                                                          ),
+                                                        );
+
+                                                    return SlideTransition(
+                                                      position: animation.drive(
+                                                        tween,
+                                                      ),
+                                                      child: child,
+                                                    );
+                                                  },
+                                              transitionDuration:
+                                                  const Duration(
+                                                    milliseconds: 300,
+                                                  ),
                                             ),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
+                                          );
+
+                                      if (updatedCollection != null &&
+                                          updatedCollection is Collection) {
+                                        setState(() {
+                                          final index = _collections.indexWhere(
+                                            (c) => c.id == updatedCollection.id,
+                                          );
+                                          if (index != -1) {
+                                            _collections[index] =
+                                                updatedCollection;
+                                          }
+                                        });
+                                      }
+                                    },
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: collection.color,
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(
+                                              0.2,
+                                            ),
+                                            blurRadius: 8,
+                                            offset: Offset(0, 4),
                                           ),
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Text(
-                                                '${collection.flashcardCount} flashcards',
-                                                style: TextStyle(
-                                                  color: Colors.white
-                                                      .withOpacity(0.9),
-                                                  fontSize: 12,
+                                        ],
+                                      ),
+                                      child: Stack(
+                                        children: [
+                                          // Imagem de fundo se houver
+                                          if (collection.imagePath != null)
+                                            ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                              child: kIsWeb
+                                                  ? Image.network(
+                                                      collection.imagePath!,
+                                                      width: double.infinity,
+                                                      height: double.infinity,
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder:
+                                                          (
+                                                            context,
+                                                            error,
+                                                            stackTrace,
+                                                          ) {
+                                                            return Container(
+                                                              color: collection
+                                                                  .color,
+                                                            );
+                                                          },
+                                                    )
+                                                  : Image.file(
+                                                      File(
+                                                        collection.imagePath!,
+                                                      ),
+                                                      width: double.infinity,
+                                                      height: double.infinity,
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder:
+                                                          (
+                                                            context,
+                                                            error,
+                                                            stackTrace,
+                                                          ) {
+                                                            return Container(
+                                                              color: collection
+                                                                  .color,
+                                                            );
+                                                          },
+                                                    ),
+                                            ),
+                                          // Overlay escuro para melhorar legibilidade do texto
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                              gradient: LinearGradient(
+                                                begin: Alignment.topCenter,
+                                                end: Alignment.bottomCenter,
+                                                colors: [
+                                                  Colors.transparent,
+                                                  Colors.black.withOpacity(0.7),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          // Botão de menu (três pontinhos)
+                                          Positioned(
+                                            top: 8,
+                                            right: 8,
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                _showCollectionMenu(
+                                                  context,
+                                                  collection,
+                                                );
+                                              },
+                                              child: Container(
+                                                width: 32,
+                                                height: 32,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black54,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Icon(
+                                                  Icons.more_vert,
+                                                  color: Colors.white,
+                                                  size: 18,
                                                 ),
                                               ),
-                                              Icon(
-                                                Icons.arrow_forward_ios,
-                                                color: Colors.white.withOpacity(
-                                                  0.9,
+                                            ),
+                                          ),
+                                          // Conteúdo
+                                          Padding(
+                                            padding: const EdgeInsets.all(16.0),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                Text(
+                                                  collection.name,
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                  maxLines: 2,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                 ),
-                                                size: 16,
-                                              ),
-                                            ],
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    Text(
+                                                      '${collection.flashcardCount} flashcards',
+                                                      style: TextStyle(
+                                                        color: Colors.white
+                                                            .withOpacity(0.9),
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                    Icon(
+                                                      Icons.arrow_forward_ios,
+                                                      color: Colors.white
+                                                          .withOpacity(0.9),
+                                                      size: 16,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-          // Página Histórico (índice 1)
-          HistoryPage(user: _user),
-          // Página Perfil (índice 2)
-          ProfilePage(
-            user: _user,
-            onUserUpdate: (updatedUser) {
-              setState(() {
-                _user = updatedUser;
-              });
-            },
-            onLogout: () {
-              setState(() {
-                _user = User.empty();
-                _collections = []; // Limpa todas as coleções ao deslogar
-                _selectedIndex = 0; // Volta para o início após deslogar
-              });
-            },
-          ),
-        ],
-      ),
-      floatingActionButton: _selectedIndex == 0
-          ? FloatingActionButton(
-              heroTag: "add_collection_fab",
-              onPressed: () {
-                if (_user.isLoggedIn) {
-                  _showCreateCollectionDialog(context);
-                } else {
-                  _showLoginDialog(context);
-                }
-              },
-              shape: const CircleBorder(),
-              backgroundColor: Colors.white,
-              child: Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: Image.asset("assets/images/addButton.png"),
-              ),
-            )
-          : null,
-      backgroundColor: Colors.black87,
-=======
-        body: _collections.isEmpty
-            ? Stack(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(60.0),
-                    child: Center(
-                      child: Column(
-                        children: [
-                          Image.asset(
-                            'assets/images/sleepingCat.png',
-                            width: MediaQuery.of(context).size.width * 0.5,
-                            height: MediaQuery.of(context).size.height * 0.3,
-                            fit: BoxFit.contain,
-                          ),
-                          Text(
-                            'Não há nada aqui, ainda...',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 65,
-                    right: 65,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      child: const Text(
-                        'Crie sua primeira coleção!',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 25,
-                    right: 75,
-                    child: Image.asset(
-                      'assets/images/arrowRight.png',
-                      height: 40,
-                      width: 40,
-                    ),
-                  ),
-                ],
-              )
-            : Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8.0,
-                        vertical: 16.0,
-                      ),
-                      child: Text(
-                        'Suas Coleções',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: GridView.builder(
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 1.2,
-                        ),
-                        itemCount: _collections.length,
-                        itemBuilder: (context, index) {
-                          final collection = _collections[index];
-                          return GestureDetector(
-                            onTap: () {},
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: collection.color,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
-                                    blurRadius: 8,
-                                    offset: Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      collection.name,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          '${collection.flashcardCount} flashcards',
-                                          style: TextStyle(
-                                            color: Colors.white.withOpacity(
-                                              0.8,
-                                            ),
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                        Icon(
-                                          Icons.arrow_forward_ios,
-                                          color: Colors.white.withOpacity(0.8),
-                                          size: 16,
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
+                                  );
+                                },
                               ),
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-        floatingActionButton: BlocBuilder<AuthBloc, AuthState>(
-          builder: (context, state) {
-            final signedIn = state is Authenticated;
-            return FloatingActionButton(
-              onPressed: () async {
-                if (signedIn) {
-                  final created = await Navigator.push<Collection?>(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const CreateCollectionPage(),
+                          ],
+                        ),
+                      );
+              },
+            ),
+            // Página Histórico (índice 1)
+            HistoryPage(user: _user),
+            // Página Perfil (índice 2)
+            ProfilePage(
+              user: _user,
+              onUserUpdate: (updatedUser) {
+                setState(() {
+                  _user = updatedUser;
+                });
+              },
+              onLogout: () {
+                context.read<AuthBloc>().add(Logout());
+                setState(() {
+                  _user = User.empty();
+                  _collections = []; // Limpa todas as coleções ao deslogar
+                  _selectedIndex = 0; // Volta para o início após deslogar
+                });
+              },
+            ),
+          ],
+        ),
+        floatingActionButton: _selectedIndex == 0
+            ? BlocBuilder<AuthBloc, AuthState>(
+                builder: (context, state) {
+                  final isAuthenticated = state is Authenticated;
+                  return FloatingActionButton(
+                    heroTag: "add_collection_fab",
+                    onPressed: () {
+                      if (isAuthenticated) {
+                        _showCreateCollectionDialog(context);
+                      } else {
+                        _showLoginDialog(context);
+                      }
+                    },
+                    shape: const CircleBorder(),
+                    backgroundColor: Colors.white,
+                    child: Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: Image.asset("assets/images/addButton.png"),
                     ),
                   );
-
-                  if (created != null) {
-                    setState(() {
-                      _collections.add(created);
-                    });
-                  }
-                } else {
-                  _showLoginDialog(context);
-                }
-              },
-              shape: const CircleBorder(),
-
-              backgroundColor: Colors.white,
-              child: Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: Image.asset("assets/images/addButton.png"),
-              ),
-            );
-          },
-        ),
+                },
+              )
+            : null,
         backgroundColor: Colors.black87,
       ),
->>>>>>> 876a3b6ae1293a3d690e1f5975dd095b948edd7b
     );
   }
 }

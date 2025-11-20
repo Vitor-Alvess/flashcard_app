@@ -68,9 +68,6 @@ class Collection {
   }
 
   factory Collection.fromMap(Map<String, dynamic> map) {
-    final flashcardsList = map['flashcards'];
-    List<Flashcard> parsedFlashcards = [];
-
     return Collection(
       id: map['id'],
       name: map['name'],
@@ -78,7 +75,7 @@ class Collection {
       createdAt: DateTime.parse(map['createdAt']),
       flashcards:
           (map['flashcards'] as List<dynamic>?)
-              ?.map((q) => Flashcard.fromMap(q))
+              ?.map((q) => Flashcard.fromJson(q as Map<String, dynamic>))
               .toList() ??
           [],
       imagePath: map['imagePath'],
