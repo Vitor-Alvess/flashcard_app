@@ -4,7 +4,6 @@ import 'package:flashcard_app/model/user.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
 class ProfilePage extends StatefulWidget {
@@ -29,10 +28,8 @@ class _ProfilePageState extends State<ProfilePage> {
         context.read<UserBloc>().add(UpdateUserAge(age: widget.user.age));
         if (widget.user.profilePicturePath != null) {
           context.read<UserBloc>().add(
-                UpdateUserProfilePicture(
-                  imagePath: widget.user.profilePicturePath,
-                ),
-              );
+            UpdateUserProfilePicture(imagePath: widget.user.profilePicturePath),
+          );
         }
       }
     }
@@ -43,22 +40,24 @@ class _ProfilePageState extends State<ProfilePage> {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, authState) {
         final isAuthenticated = authState is Authenticated;
-        
+
         return BlocBuilder<UserBloc, UserState>(
           builder: (context, userState) {
             final currentUser = userState is UserInitial
                 ? userState.user
                 : userState is UserLoaded
-                    ? userState.user
-                    : userState is UserUpdated
-                        ? userState.user
-                        : widget.user;
+                ? userState.user
+                : userState is UserUpdated
+                ? userState.user
+                : widget.user;
 
             if (isAuthenticated && !currentUser.isLoggedIn) {
               final authState = context.read<AuthBloc>().state;
               if (authState is Authenticated) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  context.read<UserBloc>().add(LoadUser(email: authState.username));
+                  context.read<UserBloc>().add(
+                    LoadUser(email: authState.username),
+                  );
                 });
               }
             }
@@ -73,84 +72,56 @@ class _ProfilePageState extends State<ProfilePage> {
                         children: [
                           const SizedBox(height: 24),
                           Center(
-                            child: Stack(
-                              children: [
-                                GestureDetector(
-                                  onTap: _showImagePickerDialog,
-                                  child: Container(
-                                    width: 100,
-                                    height: 100,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[800],
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.white, width: 2),
-                                    ),
-                                    child: currentUser.profilePicturePath != null
-                                        ? ClipOval(
-                                            child: kIsWeb
-                                                ? Image.network(
-                                                    currentUser.profilePicturePath!,
-                                                    width: 100,
-                                                    height: 100,
-                                                    fit: BoxFit.cover,
-                                                    errorBuilder:
-                                                        (context, error, stackTrace) {
-                                                          return Icon(
-                                                            Icons.person,
-                                                            size: 60,
-                                                            color: Colors.white,
-                                                          );
-                                                        },
-                                                  )
-                                                : Image.file(
-                                                    File(
-                                                      currentUser.profilePicturePath!,
-                                                    ),
-                                                    width: 100,
-                                                    height: 100,
-                                                    fit: BoxFit.cover,
-                                                    errorBuilder:
-                                                        (context, error, stackTrace) {
-                                                          return Icon(
-                                                            Icons.person,
-                                                            size: 60,
-                                                            color: Colors.white,
-                                                          );
-                                                        },
-                                                  ),
-                                          )
-                                        : Icon(
-                                            Icons.person,
-                                            size: 60,
-                                            color: Colors.white,
-                                          ),
-                                  ),
+                            child: Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[800],
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2,
                                 ),
-                                Positioned(
-                                  bottom: 0,
-                                  right: 0,
-                                  child: GestureDetector(
-                                    onTap: _showImagePickerDialog,
-                                    child: Container(
-                                      width: 32,
-                                      height: 32,
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey[800],
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: Colors.white,
-                                          width: 2,
-                                        ),
-                                      ),
-                                      child: Icon(
-                                        Icons.camera_alt,
-                                        size: 16,
-                                        color: Colors.white,
-                                      ),
+                              ),
+                              child: currentUser.profilePicturePath != null
+                                  ? ClipOval(
+                                      child: kIsWeb
+                                          ? Image.network(
+                                              currentUser.profilePicturePath!,
+                                              width: 100,
+                                              height: 100,
+                                              fit: BoxFit.cover,
+                                              errorBuilder:
+                                                  (context, error, stackTrace) {
+                                                    return Icon(
+                                                      Icons.person,
+                                                      size: 60,
+                                                      color: Colors.white,
+                                                    );
+                                                  },
+                                            )
+                                          : Image.file(
+                                              File(
+                                                currentUser.profilePicturePath!,
+                                              ),
+                                              width: 100,
+                                              height: 100,
+                                              fit: BoxFit.cover,
+                                              errorBuilder:
+                                                  (context, error, stackTrace) {
+                                                    return Icon(
+                                                      Icons.person,
+                                                      size: 60,
+                                                      color: Colors.white,
+                                                    );
+                                                  },
+                                            ),
+                                    )
+                                  : Icon(
+                                      Icons.person,
+                                      size: 60,
+                                      color: Colors.white,
                                     ),
-                                  ),
-                                ),
-                              ],
                             ),
                           ),
                           const SizedBox(height: 32),
@@ -164,34 +135,22 @@ class _ProfilePageState extends State<ProfilePage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildEditableInfoRow(
+                                _buildInfoRow(
                                   Icons.person,
                                   "Nome",
                                   currentUser.name,
-                                  (value) {
-                                    context.read<UserBloc>().add(UpdateUserName(name: value));
-                                  },
                                 ),
                                 const SizedBox(height: 16),
-                                _buildEditableInfoRow(
+                                _buildInfoRow(
                                   Icons.email,
                                   "Email",
                                   currentUser.email,
-                                  (value) {
-                                    context.read<UserBloc>().add(UpdateUserEmail(email: value));
-                                  },
                                 ),
                                 const SizedBox(height: 16),
-                                _buildEditableInfoRow(
+                                _buildInfoRow(
                                   Icons.cake,
                                   "Idade",
                                   "${currentUser.age}",
-                                  (value) {
-                                    final age = int.tryParse(value);
-                                    if (age != null && age > 0) {
-                                      context.read<UserBloc>().add(UpdateUserAge(age: age));
-                                    }
-                                  },
                                 ),
                               ],
                             ),
@@ -203,14 +162,22 @@ class _ProfilePageState extends State<ProfilePage> {
                               onPressed: () {
                                 _showLogoutDialog(context);
                               },
-                              icon: const Icon(Icons.logout, color: Colors.white),
+                              icon: const Icon(
+                                Icons.logout,
+                                color: Colors.white,
+                              ),
                               label: const Text(
                                 "Deslogar",
-                                style: TextStyle(color: Colors.white, fontSize: 16),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                ),
                               ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.grey[800],
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -224,16 +191,26 @@ class _ProfilePageState extends State<ProfilePage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.person_outline, size: 80, color: Colors.grey[600]),
+                          Icon(
+                            Icons.person_outline,
+                            size: 80,
+                            color: Colors.grey[600],
+                          ),
                           const SizedBox(height: 24),
                           Text(
                             "Você não está logado",
-                            style: TextStyle(color: Colors.white70, fontSize: 18),
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 18,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             "Faça login para ver seu perfil",
-                            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 14,
+                            ),
                           ),
                         ],
                       ),
@@ -245,12 +222,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildEditableInfoRow(
-    IconData icon,
-    String label,
-    String value,
-    Function(String) onSave,
-  ) {
+  Widget _buildInfoRow(IconData icon, String label, String value) {
     return Row(
       children: [
         Icon(icon, color: Colors.white70, size: 20),
@@ -266,173 +238,8 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
         ),
-        IconButton(
-          icon: Icon(Icons.edit, color: Colors.white70, size: 20),
-          onPressed: () => _showEditDialog(context, label, value, onSave),
-        ),
       ],
     );
-  }
-
-  void _showEditDialog(
-    BuildContext context,
-    String label,
-    String currentValue,
-    Function(String) onSave,
-  ) {
-    final controller = TextEditingController(text: currentValue);
-    final formKey = GlobalKey<FormState>();
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15.0),
-          ),
-          title: Text(
-            "Editar $label",
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          content: Form(
-            key: formKey,
-            child: TextFormField(
-              controller: controller,
-              decoration: InputDecoration(
-                labelText: label,
-                filled: true,
-                fillColor: Colors.grey[100],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
-                ),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return "$label é obrigatório";
-                }
-                if (label == "Idade") {
-                  final age = int.tryParse(value);
-                  if (age == null || age <= 0) {
-                    return "Idade inválida";
-                  }
-                }
-                if (label == "Email" && !value.contains('@')) {
-                  return "Email inválido";
-                }
-                return null;
-              },
-              keyboardType: label == "Idade"
-                  ? TextInputType.number
-                  : TextInputType.text,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text("Cancelar"),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey[800],
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  onSave(controller.text);
-                  Navigator.of(context).pop();
-                }
-              },
-              child: const Text(
-                "Salvar",
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showImagePickerDialog() {
-    final userState = context.read<UserBloc>().state;
-    final currentUser = userState is UserInitial
-        ? userState.user
-        : userState is UserLoaded
-            ? userState.user
-            : userState is UserUpdated
-                ? userState.user
-                : widget.user;
-    if (currentUser.profilePicturePath != null) {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15.0),
-            ),
-            title: const Text(
-              "Foto de Perfil",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.photo_library),
-                  title: const Text("Trocar foto"),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    _pickImageFromGallery();
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.delete, color: Colors.red),
-                  title: const Text(
-                    "Remover foto",
-                    style: TextStyle(color: Colors.red),
-                  ),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    context.read<UserBloc>().add(
-                          UpdateUserProfilePicture(imagePath: null),
-                        );
-                  },
-                ),
-              ],
-            ),
-          );
-        },
-      );
-    } else {  
-      _pickImageFromGallery();
-    }
-  }
-
-  Future<void> _pickImageFromGallery() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 512,
-      maxHeight: 512,
-      imageQuality: 85,
-    );
-
-    if (image != null) {
-      context.read<UserBloc>().add(
-            UpdateUserProfilePicture(imagePath: image.path),
-          );
-    }
   }
 
   void _showLogoutDialog(BuildContext context) {
