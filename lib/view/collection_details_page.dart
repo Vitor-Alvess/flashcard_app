@@ -42,7 +42,7 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
     final TextEditingController questionController = TextEditingController();
     final TextEditingController answerController = TextEditingController();
     bool caseSensitive = false;
-    final pageSetState = setState; // Capture the page's setState
+      final pageSetState = setState;
 
     showDialog(
       context: context,
@@ -175,7 +175,6 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
                         caseSensitive: caseSensitive,
                       );
                       Navigator.of(context).pop();
-                      // Update the main page state
                       pageSetState(() {
                         _collection.addQuestion(newQuestion);
                       });
@@ -250,7 +249,6 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
   }
 
   void _handleMultipleChoiceMode() {
-    // Show warning about mixing answers
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -279,7 +277,6 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
               ),
               onPressed: () {
                 Navigator.of(context).pop();
-                // Check if there are at least 4 questions when accepting default
                 if (_collection.flashcards.length < 4) {
                   showDialog(
                     context: context,
@@ -347,17 +344,14 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
       _collection.flashcards,
     );
 
-    // Initialize controllers for first question
     void _initializeControllers(int index) {
       optionControllers.clear();
       final question = questionsToCustomize[index];
       if (question.multipleChoiceOptions != null) {
-        // Use existing options
         for (var option in question.multipleChoiceOptions!) {
           optionControllers.add(TextEditingController(text: option));
         }
       } else {
-        // Initialize with empty options
         for (int i = 0; i < 4; i++) {
           if (i == 0) {
             optionControllers.add(TextEditingController(text: question.answer));
@@ -652,7 +646,7 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
       text: question.answer,
     );
     bool caseSensitive = question.caseSensitive;
-    final pageSetState = setState; // Capture the page's setState
+    final pageSetState = setState;
 
     showDialog(
       context: context,
@@ -779,7 +773,6 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
                   onPressed: () {
                     if (formKey.currentState!.validate()) {
                       Navigator.of(context).pop();
-                      // Update the question
                       pageSetState(() {
                         final index = _collection.flashcards.indexWhere(
                           (q) => q.id == question.id,
@@ -897,7 +890,6 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Proteção de autenticação - se não estiver logado, mostrar mensagem
     if (!widget.user.isLoggedIn) {
       return Scaffold(
         backgroundColor: Colors.black87,
@@ -937,7 +929,6 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            // Salvar a coleção atualizada no banco antes de voltar
             context.read<ManagerBloc>().add(
                   SubmitEvent(collection: _collection),
                 );

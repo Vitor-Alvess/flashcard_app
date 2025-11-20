@@ -18,13 +18,11 @@ class _CreateCollectionPageState extends State<CreateCollectionPage> {
   bool _showColorPicker = false;
   bool _isSaving = false;
 
-  // Each entry holds a pair of controllers for question and answer
   final List<Map<String, TextEditingController>> _cardsControllers = [];
 
   @override
   void initState() {
     super.initState();
-    // start with one empty card
     _addCard();
   }
 
@@ -216,7 +214,6 @@ class _CreateCollectionPageState extends State<CreateCollectionPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Color preview / picker toggle
                 GestureDetector(
                   onTap: () =>
                       setState(() => _showColorPicker = !_showColorPicker),
@@ -243,7 +240,6 @@ class _CreateCollectionPageState extends State<CreateCollectionPage> {
                 if (_showColorPicker) _buildColorPicker(),
                 const SizedBox(height: 12),
 
-                // Title
                 TextFormField(
                   controller: _titleController,
                   decoration: const InputDecoration(
@@ -258,7 +254,6 @@ class _CreateCollectionPageState extends State<CreateCollectionPage> {
                 ),
                 const SizedBox(height: 12),
 
-                // Flashcards list
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -308,7 +303,6 @@ class _CreateCollectionPageState extends State<CreateCollectionPage> {
                                                             OutlineInputBorder(),
                                                       ),
                                                   validator: (v) {
-                                                    // allow empty per-row, will be filtered on save
                                                     return null;
                                                   },
                                                 ),

@@ -13,8 +13,6 @@ class ManagerBloc extends Bloc<ManagerEvent, ManagerState> {
           .collectionsStream()
           .listen((list) => add(BackendEvent(collectionList: list)));
     } catch (e, st) {
-      // Firestore may not be available yet (or plugin not registered).
-      // Avoid throwing during bloc construction; log and continue.
       print('ManagerBloc: failed to subscribe to collectionsStream: $e\n$st');
       _subscription = null;
     }
@@ -22,26 +20,22 @@ class ManagerBloc extends Bloc<ManagerEvent, ManagerState> {
 
     on<SubmitEvent>((event, emit) async {
       final col = event.collection;
-      // Primeiro verificar na lista local (mais rápido)
       final existsInLocal = state.collectionList.any((c) => c.id == col.id);
-      
+
       if (existsInLocal) {
-        // Coleção existe localmente, fazer update
         await FirestoreCollectionProvider.helper.updateCollection(
           col.id,
           col.toMap(),
         );
       } else {
-        // Verificar se a coleção já existe no banco
-        final existingCollection = await FirestoreCollectionProvider.helper.getCollectionById(col.id);
+        final existingCollection = await FirestoreCollectionProvider.helper
+            .getCollectionById(col.id);
         if (existingCollection != null) {
-          // Coleção existe no banco, fazer update
           await FirestoreCollectionProvider.helper.updateCollection(
             col.id,
             col.toMap(),
           );
         } else {
-          // Coleção não existe, fazer insert
           await FirestoreCollectionProvider.helper.insertCollection(
             event.collection,
           );

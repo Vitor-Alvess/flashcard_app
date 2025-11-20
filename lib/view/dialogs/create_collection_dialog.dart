@@ -35,7 +35,7 @@ class _CreateCollectionDialogState extends State<CreateCollectionDialog> {
       id: tempId,
       name: name,
       color: _selectedColor,
-      flashcards: [], // Coleção vazia - flashcards serão adicionados depois
+      flashcards: [],
       imagePath: null,
     );
 
@@ -108,7 +108,6 @@ class _CreateCollectionDialogState extends State<CreateCollectionDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Image placeholder
               GestureDetector(
                 onTap: () => setState(() => _showColorPicker = !_showColorPicker),
                 child: Container(
@@ -171,7 +170,6 @@ class _CreateCollectionDialogState extends State<CreateCollectionDialog> {
                 _buildColorPicker(),
               ],
               const SizedBox(height: 16),
-              // Name field
               const Text(
                 'Nome',
                 style: TextStyle(
@@ -199,7 +197,6 @@ class _CreateCollectionDialogState extends State<CreateCollectionDialog> {
                 },
               ),
               const SizedBox(height: 20),
-              // Create button
               ElevatedButton(
                 onPressed: _createCollection,
                 style: ElevatedButton.styleFrom(
