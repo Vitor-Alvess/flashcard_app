@@ -6,33 +6,41 @@ class FirestoreCollectionProvider {
   FirestoreCollectionProvider._();
 
   final CollectionReference collectionsRoot = FirebaseFirestore.instance
-      .collection('collections');
+      .collection('users-collections');
 
-  String collectionsDocRef = 'colecoes';
-
-  CollectionReference get _innerCollection =>
-      collectionsRoot.doc(collectionsDocRef).collection('collections');
-
-  Future<String> insertCollection(Collection collection) async {
+  Future<String> insertCollection(
+    Collection collection,
+    String userEmail,
+  ) async {
     if (collection.id.isNotEmpty) {
-      await _innerCollection.doc(collection.id).set(collection.toMap());
+      await collectionsRoot
+          .doc(userEmail)
+          .collection("collections")
+          .doc(collection.id)
+          .set(collection.toMap());
       return collection.id;
     }
-    final docRef = await _innerCollection.add(collection.toMap());
+    final docRef = await collectionsRoot
+        .doc(userEmail)
+        .collection("collections")
+        .add(collection.toMap());
     return docRef.id;
   }
 
-  Future<void> setCollection(String id, Collection collection) async {
-    await _innerCollection.doc(id).set(collection.toMap());
+  Future<void> setCollection(String id, Collection collection, String userEmail) async {
+    await collectionsRoot
+        .doc(userEmail)
+        .collection("collections")
+        .doc(id)
+        .set(collection.toMap());
   }
 
-  Future<List<Collection>> getAllCollections({String? userId}) async {
-    Query query = _innerCollection;
-    if (userId != null && userId.isNotEmpty) {
-      query = query.where('userId', isEqualTo: userId);
-    }
-    final snapshot = await query.get();
-    return snapshot.docs.map((d) {
+  Future<List<Collection>> getAllCollections(String userEmail) async {
+    final querySnapshot = await collectionsRoot
+        .doc(userEmail)
+        .collection("collections")
+        .get();
+    return querySnapshot.docs.map((d) {
       final data = _normalizeDocData(d.data());
       final historyMap = Map<String, dynamic>.from(data);
       historyMap['id'] = d.id;
@@ -41,22 +49,43 @@ class FirestoreCollectionProvider {
   }
 
   Stream<List<Collection>> collectionsStream({String? userId}) {
-    Query query = _innerCollection;
     if (userId != null && userId.isNotEmpty) {
-      query = query.where('userId', isEqualTo: userId);
+      return collectionsRoot
+          .doc(userId)
+          .collection('collections')
+          .snapshots()
+          .map((snap) {
+            return snap.docs.map((d) {
+              final data = _normalizeDocData(d.data());
+              final historyMap = Map<String, dynamic>.from(data);
+              historyMap['id'] = d.id;
+              return Collection.fromMap(historyMap);
+            }).toList();
+          });
     }
-    return query.snapshots().map((snap) {
-      return snap.docs.map((d) {
-        final data = _normalizeDocData(d.data());
-        final historyMap = Map<String, dynamic>.from(data);
-        historyMap['id'] = d.id;
-        return Collection.fromMap(historyMap);
-      }).toList();
-    });
+    return Stream.value(<Collection>[]);
   }
 
-  Future<Collection?> getCollectionById(String id) async {
-    final doc = await _innerCollection.doc(id).get();
+  /// Stream the collections for a specific user (by email or id used as doc)
+  Stream<List<Collection>> collectionsStreamForUser(String userEmail) {
+    return collectionsRoot
+        .doc(userEmail)
+        .collection('collections')
+        .snapshots()
+        .map(
+          (snap) => snap.docs.map((d) {
+            final data = _normalizeDocData(d.data());
+            return Collection.fromMap(data..['id'] = d.id);
+          }).toList(),
+        );
+  }
+
+  Future<Collection?> getCollectionById(String id, String userEmail) async {
+    final doc = await collectionsRoot
+        .doc(userEmail)
+        .collection("collections")
+        .doc(id)
+        .get();
     if (!doc.exists) return null;
     final data = _normalizeDocData(doc.data()!);
     final historyMap = Map<String, dynamic>.from(data);
@@ -64,12 +93,28 @@ class FirestoreCollectionProvider {
     return Collection.fromMap(historyMap);
   }
 
-  Future<void> updateCollection(String id, Map<String, dynamic> data) async {
-    await _innerCollection.doc(id).update(data);
+  Future<void> updateCollection(
+    String id,
+    Map<String, dynamic> data,
+    String userEmail,
+  ) async {
+    await collectionsRoot
+        .doc(userEmail)
+        .collection("collections")
+        .doc(id)
+        .update(data);
   }
 
-  Future<void> deleteCollection(String id) async {
-    await _innerCollection.doc(id).delete();
+  Future<void> deleteCollection(
+    String id,
+    Map<String, dynamic> data,
+    String userEmail,
+  ) async {
+    await collectionsRoot
+        .doc(userEmail)
+        .collection("collections")
+        .doc(id)
+        .delete();
   }
 
   Map<String, dynamic> _normalizeDocData(Object? rawData) {

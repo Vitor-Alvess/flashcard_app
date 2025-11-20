@@ -864,7 +864,7 @@ class _MainPageState extends State<MainPage> {
                           ),
                         ),
                         child: Column(
-                          children: [ 
+                          children: [
                             Container(
                               padding: EdgeInsets.all(15),
                               child: Row(
@@ -1192,8 +1192,7 @@ class _MainPageState extends State<MainPage> {
         ),
         BlocListener<ManagerBloc, ManagerState>(
           listener: (context, state) {
-            if (state is InsertState && state.collectionList.isEmpty) {
-            }
+            if (state is InsertState && state.collectionList.isEmpty) {}
           },
         ),
       ],
@@ -1679,7 +1678,7 @@ class _MainPageState extends State<MainPage> {
                     context.read<AuthBloc>().add(Logout());
                     context.read<UserBloc>().add(ClearUser());
                     setState(() {
-                        _selectedIndex = 0;
+                      _selectedIndex = 0;
                     });
                   },
                 );

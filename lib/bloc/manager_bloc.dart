@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flashcard_app/model/collection.dart';
 import 'package:flashcard_app/provider/firestore_collection_provider.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ManagerBloc extends Bloc<ManagerEvent, ManagerState> {
   StreamSubscription<List<Collection>>? _subscription;
@@ -11,27 +12,21 @@ class ManagerBloc extends Bloc<ManagerEvent, ManagerState> {
     _updateSubscription(null);
 
     on<SubmitEvent>((event, emit) async {
-      final col = event.collection;
-      final existsInLocal = state.collectionList.any((c) => c.id == col.id);
+      final userEmail = FirebaseAuth.instance.currentUser?.email;
+      if (userEmail == null) return;
 
-      if (existsInLocal) {
+      if (state is UpdateState) {
+        final col = event.collection;
         await FirestoreCollectionProvider.helper.updateCollection(
           col.id,
           col.toMap(),
+          userEmail,
         );
       } else {
-        final existingCollection = await FirestoreCollectionProvider.helper
-            .getCollectionById(col.id);
-        if (existingCollection != null) {
-          await FirestoreCollectionProvider.helper.updateCollection(
-            col.id,
-            col.toMap(),
-          );
-        } else {
-          await FirestoreCollectionProvider.helper.insertCollection(
-            event.collection,
-          );
-        }
+        await FirestoreCollectionProvider.helper.insertCollection(
+          event.collection,
+          userEmail,
+        );
       }
     });
 
@@ -48,8 +43,13 @@ class ManagerBloc extends Bloc<ManagerEvent, ManagerState> {
     });
 
     on<DeleteEvent>((event, emit) async {
+      final userEmail = FirebaseAuth.instance.currentUser?.email;
+      if (userEmail == null) return;
+
       await FirestoreCollectionProvider.helper.deleteCollection(
         event.collectionId,
+        {},
+        userEmail,
       );
     });
 
