@@ -57,18 +57,30 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
     emit(HistoryLoading());
     try {
       _subscription?.cancel();
+      _subscription = null;
       
-      // Carregar dados do histórico
-      final histories = await FirestoreHistoryProvider.helper.getHistoryByUserId(event.userId);
-      print('Loaded ${histories.length} histories for user: ${event.userId}');
-      emit(HistoryLoaded(histories: histories));
+      // Carregar dados do histórico com timeout adicional
+      final histories = await FirestoreHistoryProvider.helper
+          .getHistoryByUserId(event.userId)
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () {
+              print('HistoryBloc: LoadHistory timeout');
+              return <StudyHistory>[];
+            },
+          );
       
-      // Opcionalmente, escutar mudanças em tempo real (mas não é necessário)
-      // O histórico será recarregado quando o usuário voltar para a página
+      print('HistoryBloc: Loaded ${histories.length} histories for user: ${event.userId}');
+      
+      if (!isClosed) {
+        emit(HistoryLoaded(histories: histories));
+      }
     } catch (e, stackTrace) {
-      print('Error loading history: $e');
+      print('HistoryBloc: Error loading history: $e');
       print('Stack trace: $stackTrace');
-      emit(HistoryError(message: e.toString()));
+      if (!isClosed) {
+        emit(HistoryError(message: e.toString()));
+      }
     }
   }
 

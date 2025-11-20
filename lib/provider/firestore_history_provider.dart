@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flashcard_app/model/study_history.dart';
 
@@ -25,24 +26,46 @@ class FirestoreHistoryProvider {
     try {
       print('getHistoryByUserId called for userId: $userId');
       print('Querying collection: ${_innerCollection.path}');
+      
+      // Add timeout to prevent hanging
       final query = await _innerCollection
           .where('userId', isEqualTo: userId)
-          .get();
+          .get()
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              print('Query timeout after 10 seconds');
+              throw TimeoutException('History query timed out');
+            },
+          );
 
       print('Query completed. Found ${query.docs.length} documents');
 
+      if (query.docs.isEmpty) {
+        print('No history documents found for user: $userId');
+        return [];
+      }
+
       final histories = query.docs.map((d) {
-        final data = _normalizeDocData(d.data());
-        final historyMap = Map<String, dynamic>.from(data);
-        historyMap['id'] = d.id;
-        return StudyHistory.fromMap(historyMap);
-      }).toList();
+        try {
+          final data = _normalizeDocData(d.data());
+          final historyMap = Map<String, dynamic>.from(data);
+          historyMap['id'] = d.id;
+          return StudyHistory.fromMap(historyMap);
+        } catch (e) {
+          print('Error parsing history document ${d.id}: $e');
+          return null;
+        }
+      }).whereType<StudyHistory>().toList();
 
       // Ordenar por completedAt em ordem decrescente
       histories.sort((a, b) => b.completedAt.compareTo(a.completedAt));
 
       print('Returning ${histories.length} histories');
       return histories;
+    } on TimeoutException catch (e) {
+      print('Timeout in getHistoryByUserId: $e');
+      return [];
     } catch (e, stackTrace) {
       print('Error in getHistoryByUserId: $e');
       print('Stack trace: $stackTrace');

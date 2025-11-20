@@ -15,18 +15,20 @@ class HistoryPage extends StatefulWidget {
 
 class _HistoryPageState extends State<HistoryPage> {
   String? _lastLoadedUserId;
+  bool _isLoading = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Carregar histórico quando a página é aberta ou quando o usuário muda
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
+      if (mounted && !_isLoading) {
         final authState = context.read<AuthBloc>().state;
         if (authState is Authenticated) {
           // Só carrega se for um usuário diferente ou se ainda não carregou
           if (_lastLoadedUserId != authState.username) {
             _lastLoadedUserId = authState.username;
+            _isLoading = true;
             print('Loading history for user: ${authState.username}');
             context.read<HistoryBloc>().add(
               LoadHistory(userId: authState.username),
@@ -35,6 +37,7 @@ class _HistoryPageState extends State<HistoryPage> {
         } else {
           // Reset quando deslogar
           _lastLoadedUserId = null;
+          _isLoading = false;
         }
       }
     });
@@ -62,23 +65,31 @@ class _HistoryPageState extends State<HistoryPage> {
       );
     }
 
-    return BlocListener<AuthBloc, AuthState>(
-      listener: (context, authState) {
-        if (authState is Authenticated) {
-          if (_lastLoadedUserId != authState.username) {
-            _lastLoadedUserId = authState.username;
-            print(
-              'AuthBloc listener: Loading history for user: ${authState.username}',
-            );
-            context.read<HistoryBloc>().add(
-              LoadHistory(userId: authState.username),
-            );
-          }
-        } else {
-          _lastLoadedUserId = null;
-          context.read<HistoryBloc>().add(ResetHistory());
+    return BlocListener<HistoryBloc, HistoryState>(
+      listener: (context, historyState) {
+        if (historyState is HistoryLoaded || historyState is HistoryError) {
+          _isLoading = false;
         }
       },
+      child: BlocListener<AuthBloc, AuthState>(
+        listener: (context, authState) {
+          if (authState is Authenticated) {
+            if (_lastLoadedUserId != authState.username && !_isLoading) {
+              _lastLoadedUserId = authState.username;
+              _isLoading = true;
+              print(
+                'AuthBloc listener: Loading history for user: ${authState.username}',
+              );
+              context.read<HistoryBloc>().add(
+                LoadHistory(userId: authState.username),
+              );
+            }
+          } else {
+            _lastLoadedUserId = null;
+            _isLoading = false;
+            context.read<HistoryBloc>().add(ResetHistory());
+          }
+        },
       child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, authState) {
           if (authState is! Authenticated) {
@@ -105,8 +116,12 @@ class _HistoryPageState extends State<HistoryPage> {
             backgroundColor: Colors.black87,
             body: BlocBuilder<HistoryBloc, HistoryState>(
               builder: (context, state) {
-                if (state is HistoryLoading) {
-                  return const Center(child: CircularProgressIndicator());
+                if (state is HistoryLoading || state is HistoryInitial) {
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                    ),
+                  );
                 }
 
                 if (state is HistoryError) {
@@ -187,6 +202,7 @@ class _HistoryPageState extends State<HistoryPage> {
             ),
           );
         },
+        ),
       ),
     );
   }
