@@ -39,7 +39,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
     super.dispose();
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
       widget.user.name = _nameController.text.trim();
       widget.user.email = _emailController.text.trim();
@@ -47,23 +47,40 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
       // Vincular foto de perfil à conta
       widget.user.profilePicturePath = _selectedImagePath;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Conta criada com sucesso!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      try {
+        // Primeiro registra no Firebase Auth
+        BlocProvider.of<AuthBloc>(context).add(
+          RegisterUser(
+            username: widget.user.email,
+            password: _passwordController.text.trim(),
+          ),
+        );
 
-      BlocProvider.of<AuthBloc>(context).add(
-        RegisterUser(
-          username: widget.user.email,
-          password: _passwordController.text.trim(),
-        ),
-      );
+        // Aguarda um pouco para garantir que o Auth foi processado
+        await Future.delayed(const Duration(milliseconds: 1000));
+        
+        // Salva o usuário no Firestore
+        await FirestoreUserProvider.helper.insertUser(widget.user);
 
-      FirestoreUserProvider.helper.insertUser(widget.user);
-
-      Navigator.pop(context);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Conta criada com sucesso!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context);
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erro ao criar conta: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

@@ -1195,8 +1195,29 @@ class _MainPageState extends State<MainPage> {
           _userFuture = FirestoreUserProvider.helper.findUserByEmail(
             state.username,
           );
+          _userFuture
+              ?.then((user) {
+                if (mounted && user != null) {
+                  setState(() {
+                    _user = user;
+                  });
+                }
+              })
+              .catchError((error) {
+                // Se não encontrar o usuário, mantém vazio
+                if (mounted) {
+                  setState(() {
+                    _user = User.empty();
+                  });
+                }
+              });
         } else {
           _userFuture = null;
+          if (mounted) {
+            setState(() {
+              _user = User.empty();
+            });
+          }
         }
 
         if (mounted) setState(() {});

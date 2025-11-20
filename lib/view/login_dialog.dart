@@ -112,6 +112,7 @@ class _LoginDialogState extends State<LoginDialog> {
         Column(
           children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 TextButton(
                   child: const Text(
@@ -123,49 +124,51 @@ class _LoginDialogState extends State<LoginDialog> {
                   },
                 ),
                 ElevatedButton(
-                  child: const Text(
-                    "ENTRAR",
-                    style: TextStyle(color: Colors.black, fontSize: 10),
+                  style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    backgroundColor: Colors.black,
                   ),
-                  onPressed: () {
-                    if (formKey.currentState!.validate()) {
-                      BlocProvider.of<AuthBloc>(context).add(
-                        LoginUser(
-                          username: emailController.text.trim(),
-                          password: passwordController.text.trim(),
-                        ),
-                      );
-                      Navigator.of(context).pop();
-                    }
+                  onPressed: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            CreateAccountPage(user: widget.user),
+                      ),
+                    );
+
+                    setState(() {});
+
+                    Navigator.of(context).pop();
                   },
+                  child: const Text(
+                    "Criar conta",
+                    style: TextStyle(color: Colors.white, fontSize: 10),
+                  ),
                 ),
               ],
             ),
-            SizedBox(height: 5),
+            const SizedBox(height: 25),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  shape: ContinuousRectangleBorder(),
-                  backgroundColor: Colors.black,
-                ),
-                onPressed: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          CreateAccountPage(user: widget.user),
-                    ),
-                  );
-
-                  setState(() {});
-
-                  Navigator.of(context).pop();
-                },
                 child: const Text(
-                  "Criar conta",
-                  style: TextStyle(color: Colors.white),
+                  "ENTRAR",
+                  style: TextStyle(color: Colors.black, fontSize: 10),
                 ),
+                onPressed: () {
+                  if (formKey.currentState!.validate()) {
+                    BlocProvider.of<AuthBloc>(context).add(
+                      LoginUser(
+                        username: emailController.text.trim(),
+                        password: passwordController.text.trim(),
+                      ),
+                    );
+                    Navigator.of(context).pop();
+                  }
+                },
               ),
             ),
           ],
