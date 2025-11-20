@@ -1,10 +1,8 @@
+import 'package:flashcard_app/bloc/study_bloc.dart';
 import 'package:flashcard_app/model/collection.dart';
-import 'package:flashcard_app/model/flashcard.dart';
 import 'package:flashcard_app/view/results_page.dart';
 import 'package:flutter/material.dart';
-import 'dart:math';
-
-enum StudyMode { written, multipleChoice, selfAssessment }
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class StudyPage extends StatefulWidget {
   final Collection collection;
@@ -17,230 +15,165 @@ class StudyPage extends StatefulWidget {
 }
 
 class _StudyPageState extends State<StudyPage> {
-  int _currentIndex = 0;
-  bool _showAnswer = false;
-  String? _selectedAnswer;
   final TextEditingController _answerController = TextEditingController();
-  List<Flashcard> _shuffledQuestions = [];
-  Map<String, List<String>> _multipleChoiceOptions = {};
-  int _correctAnswers = 0;
-  Map<String, bool> _questionResults =
-      {}; // Track if each question was answered correctly
-  bool _isPaused = false;
 
   @override
   void initState() {
     super.initState();
-    _shuffledQuestions = List<Flashcard>.from(widget.collection.flashcards);
-    _shuffledQuestions.shuffle(Random());
-    _prepareMultipleChoiceOptions();
+    context.read<StudyBloc>().add(
+          InitializeStudy(
+            collection: widget.collection,
+            mode: widget.mode,
+          ),
+        );
   }
 
-  void _prepareMultipleChoiceOptions() {
-    if (widget.mode == StudyMode.multipleChoice) {
-      final random = Random();
-      for (var question in _shuffledQuestions) {
-        if (question.multipleChoiceOptions != null) {
-          // Use personalized options and shuffle them
-          List<String> options = List<String>.from(
-            question.multipleChoiceOptions!,
-          );
-          options.shuffle(random);
-          _multipleChoiceOptions[question.id] = options;
-        } else {
-          // Mix answers from all questions
-          List<String> allAnswers = widget.collection.flashcards
-              .map((q) => q.answer)
-              .where((answer) => answer != question.answer)
-              .toList();
-          allAnswers.shuffle(random);
-          List<String> options = [question.answer];
-          options.addAll(allAnswers.take(3));
-          options.shuffle(random);
-          _multipleChoiceOptions[question.id] = options;
-        }
-      }
-    }
-  }
-
-  void _nextQuestion() {
-    if (_currentIndex < _shuffledQuestions.length - 1) {
-      setState(() {
-        _currentIndex++;
-        _showAnswer = false;
-        _selectedAnswer = null;
-        _answerController.clear();
-      });
-    } else {
-      // Finished - show results
-      _showResults();
-    }
-  }
-
-  void _selfAssess(bool correct) {
-    final currentQuestion = _shuffledQuestions[_currentIndex];
-    // Track result
-    if (!_questionResults.containsKey(currentQuestion.id)) {
-      _questionResults[currentQuestion.id] = correct;
-      if (correct) {
-        _correctAnswers++;
-      }
-    }
-    // Move to next question
-    _nextQuestion();
-  }
-
-  void _showResults() {
-    final totalQuestions = _shuffledQuestions.length;
-    final percentage = totalQuestions > 0
-        ? (_correctAnswers / totalQuestions * 100).round()
-        : 0;
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ResultsPage(
-          correctAnswers: _correctAnswers,
-          totalQuestions: totalQuestions,
-          percentage: percentage,
-        ),
-      ),
-    );
-  }
-
-  void _checkAnswer() {
-    final currentQuestion = _shuffledQuestions[_currentIndex];
-    bool isCorrect = false;
-
-    if (widget.mode == StudyMode.written) {
-      final userAnswer = _answerController.text.trim();
-      final correctAnswer = currentQuestion.answer.trim();
-      final isCaseSensitive = currentQuestion.caseSensitive;
-
-      isCorrect = isCaseSensitive
-          ? userAnswer == correctAnswer
-          : userAnswer.toLowerCase() == correctAnswer.toLowerCase();
-
-      setState(() {
-        _showAnswer = true;
-        _selectedAnswer = isCorrect ? "correct" : "incorrect";
-      });
-    } else if (widget.mode == StudyMode.multipleChoice) {
-      isCorrect = _selectedAnswer == currentQuestion.answer;
-      setState(() {
-        _showAnswer = true;
-      });
-    }
-
-    // Track result
-    if (!_questionResults.containsKey(currentQuestion.id)) {
-      _questionResults[currentQuestion.id] = isCorrect;
-      if (isCorrect) {
-        _correctAnswers++;
-      }
-    }
+  @override
+  void dispose() {
+    _answerController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_shuffledQuestions.isEmpty) {
-      return Scaffold(
-        backgroundColor: Colors.black87,
-        appBar: AppBar(
-          title: Text(widget.collection.name),
-          backgroundColor: const Color.fromARGB(221, 90, 90, 90),
-        ),
-        body: const Center(
-          child: Text(
-            "Não há perguntas para estudar",
-            style: TextStyle(color: Colors.white),
-          ),
-        ),
-      );
-    }
-
-    final currentQuestion = _shuffledQuestions[_currentIndex];
-    final progress = "${_currentIndex + 1}/${_shuffledQuestions.length}";
-
-    return Scaffold(
-      backgroundColor: Colors.black87,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(Icons.pause, color: Colors.white),
-          onPressed: () {
-            setState(() {
-              _isPaused = true;
-            });
-          },
-        ),
-        title: Text(
-          widget.collection.name,
-          style: TextStyle(color: Colors.white),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: Center(
-              child: Text(
-                progress,
-                style: TextStyle(color: Colors.white, fontSize: 16),
+    return BlocListener<StudyBloc, StudyState>(
+      listener: (context, state) {
+        if (state is StudyCompleted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ResultsPage(
+                correctAnswers: state.correctAnswers,
+                totalQuestions: state.totalQuestions,
+                percentage: state.percentage,
               ),
             ),
-          ),
-        ],
-        backgroundColor: const Color.fromARGB(221, 90, 90, 90),
-        iconTheme: IconThemeData(color: Colors.white),
-      ),
-      body: Stack(
-        children: [
-          Opacity(
-            opacity: _isPaused ? 0.3 : 1.0,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  Expanded(
+          );
+        } else if (state is StudyInProgress && !state.showAnswer) {
+          _answerController.clear();
+        }
+      },
+      child: BlocBuilder<StudyBloc, StudyState>(
+        builder: (context, state) {
+          if (state is StudyInitial) {
+            return Scaffold(
+              backgroundColor: Colors.black87,
+              appBar: AppBar(
+                title: Text(widget.collection.name),
+                backgroundColor: const Color.fromARGB(221, 90, 90, 90),
+              ),
+              body: const Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+
+          if (state is StudyInProgress) {
+            if (state.shuffledQuestions.isEmpty) {
+              return Scaffold(
+                backgroundColor: Colors.black87,
+                appBar: AppBar(
+                  title: Text(widget.collection.name),
+                  backgroundColor: const Color.fromARGB(221, 90, 90, 90),
+                ),
+                body: const Center(
+                  child: Text(
+                    "Não há perguntas para estudar",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              );
+            }
+
+            final currentQuestion = state.currentQuestion;
+            final progress = state.progress;
+
+            return Scaffold(
+              backgroundColor: Colors.black87,
+              appBar: AppBar(
+                leading: IconButton(
+                  icon: const Icon(Icons.pause, color: Colors.white),
+                  onPressed: () {
+                    context.read<StudyBloc>().add(PauseStudy());
+                  },
+                ),
+                title: Text(
+                  widget.collection.name,
+                  style: const TextStyle(color: Colors.white),
+                ),
+                actions: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 16.0),
                     child: Center(
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(24.0),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text(
-                          _showAnswer && widget.mode == StudyMode.selfAssessment
-                              ? currentQuestion.answer
-                              : currentQuestion.question,
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
+                      child: Text(
+                        progress,
+                        style: const TextStyle(color: Colors.white, fontSize: 16),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  if (widget.mode == StudyMode.written) _buildWrittenMode(),
-                  if (widget.mode == StudyMode.multipleChoice)
-                    _buildMultipleChoiceMode(currentQuestion),
-                  if (widget.mode == StudyMode.selfAssessment)
-                    _buildSelfAssessmentMode(),
-                  const SizedBox(height: 24),
+                ],
+                backgroundColor: const Color.fromARGB(221, 90, 90, 90),
+                iconTheme: const IconThemeData(color: Colors.white),
+              ),
+              body: Stack(
+                children: [
+                  Opacity(
+                    opacity: state.isPaused ? 0.3 : 1.0,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: Center(
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(24.0),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[300],
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Text(
+                                  state.showAnswer && state.mode == StudyMode.selfAssessment
+                                      ? currentQuestion.answer
+                                      : currentQuestion.question,
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          if (state.mode == StudyMode.written)
+                            _buildWrittenMode(state),
+                          if (state.mode == StudyMode.multipleChoice)
+                            _buildMultipleChoiceMode(state, currentQuestion),
+                          if (state.mode == StudyMode.selfAssessment)
+                            _buildSelfAssessmentMode(state),
+                          const SizedBox(height: 24),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (state.isPaused) _buildPauseModal(),
                 ],
               ),
-            ),
-          ),
-          if (_isPaused) _buildPauseModal(),
-        ],
+            );
+          }
+
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildWrittenMode() {
-    final isCorrect = _selectedAnswer == "correct";
+  Widget _buildWrittenMode(StudyInProgress state) {
+    final isCorrect = state.isAnswerCorrect == true;
 
     return Column(
       children: [
@@ -251,12 +184,12 @@ class _StudyPageState extends State<StudyPage> {
           constraints: const BoxConstraints(minHeight: 80),
           padding: const EdgeInsets.all(16.0),
           decoration: BoxDecoration(
-            color: _showAnswer
+            color: state.showAnswer
                 ? (isCorrect ? Colors.green[100] : Colors.red[100])
                 : Colors.grey[800],
             borderRadius: BorderRadius.circular(12),
           ),
-          child: _showAnswer
+          child: state.showAnswer
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -270,7 +203,7 @@ class _StudyPageState extends State<StudyPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      "Resposta correta: ${_shuffledQuestions[_currentIndex].answer}",
+                      "Resposta correta: ${state.currentQuestion.answer}",
                       style: const TextStyle(
                         fontSize: 14,
                         color: Colors.black87,
@@ -292,10 +225,14 @@ class _StudyPageState extends State<StudyPage> {
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
           child: SizedBox(
-            key: ValueKey(_showAnswer),
+            key: ValueKey(state.showAnswer),
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _showAnswer ? _nextQuestion : _checkAnswer,
+              onPressed: state.showAnswer
+                  ? () => context.read<StudyBloc>().add(NextQuestion())
+                  : () => context.read<StudyBloc>().add(
+                        CheckAnswer(userAnswer: _answerController.text),
+                      ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.grey[800],
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -304,7 +241,7 @@ class _StudyPageState extends State<StudyPage> {
                 ),
               ),
               child: Text(
-                _showAnswer ? "Próxima" : "Verificar",
+                state.showAnswer ? "Próxima" : "Verificar",
                 style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
             ),
@@ -314,23 +251,23 @@ class _StudyPageState extends State<StudyPage> {
     );
   }
 
-  Widget _buildMultipleChoiceMode(Flashcard question) {
-    final options = _multipleChoiceOptions[question.id] ?? [];
-    final correctAnswer = question.answer;
+  Widget _buildMultipleChoiceMode(StudyInProgress state, currentQuestion) {
+    final options = state.multipleChoiceOptions[currentQuestion.id] ?? [];
+    final correctAnswer = currentQuestion.answer;
 
     return Column(
       children: [
         ...options.map((option) {
           final isCorrect = option == correctAnswer;
-          final isSelected = _selectedAnswer == option;
+          final isSelected = state.selectedAnswer == option;
 
           return GestureDetector(
-            onTap: _showAnswer
+            onTap: state.showAnswer
                 ? null
                 : () {
-                    setState(() {
-                      _selectedAnswer = option;
-                    });
+                    context.read<StudyBloc>().add(
+                          CheckAnswer(selectedAnswer: option),
+                        );
                   },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
@@ -343,7 +280,7 @@ class _StudyPageState extends State<StudyPage> {
                 vertical: 16.0,
               ),
               decoration: BoxDecoration(
-                color: _showAnswer
+                color: state.showAnswer
                     ? (isCorrect
                           ? Colors.green[100]
                           : (isSelected && !isCorrect)
@@ -352,10 +289,10 @@ class _StudyPageState extends State<StudyPage> {
                     : Colors.grey[800],
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: _showAnswer && isCorrect
+                  color: state.showAnswer && isCorrect
                       ? Colors.green
                       : Colors.transparent,
-                  width: _showAnswer && isCorrect ? 2 : 0,
+                  width: state.showAnswer && isCorrect ? 2 : 0,
                 ),
               ),
               child: Row(
@@ -365,15 +302,15 @@ class _StudyPageState extends State<StudyPage> {
                     height: 24,
                     child: Radio<String>(
                       value: option,
-                      groupValue: _selectedAnswer,
-                      onChanged: _showAnswer
+                      groupValue: state.selectedAnswer,
+                      onChanged: state.showAnswer
                           ? null
                           : (value) {
-                              setState(() {
-                                _selectedAnswer = value;
-                              });
+                              context.read<StudyBloc>().add(
+                                    CheckAnswer(selectedAnswer: value),
+                                  );
                             },
-                      activeColor: _showAnswer
+                      activeColor: state.showAnswer
                           ? (isCorrect ? Colors.green : Colors.grey)
                           : Colors.white,
                     ),
@@ -383,15 +320,15 @@ class _StudyPageState extends State<StudyPage> {
                     child: Text(
                       option,
                       style: TextStyle(
-                        color: _showAnswer ? Colors.black : Colors.white,
+                        color: state.showAnswer ? Colors.black : Colors.white,
                         fontSize: 16,
-                        fontWeight: _showAnswer && isCorrect
+                        fontWeight: state.showAnswer && isCorrect
                             ? FontWeight.bold
                             : FontWeight.normal,
                       ),
                     ),
                   ),
-                  if (_showAnswer && isCorrect)
+                  if (state.showAnswer && isCorrect)
                     Padding(
                       padding: const EdgeInsets.only(left: 8),
                       child: Icon(
@@ -400,8 +337,8 @@ class _StudyPageState extends State<StudyPage> {
                         size: 24,
                       ),
                     ),
-                  if (!_showAnswer && isSelected)
-                    const SizedBox(width: 32), // Reserve space for icon
+                  if (!state.showAnswer && isSelected)
+                    const SizedBox(width: 32),
                 ],
               ),
             ),
@@ -411,12 +348,16 @@ class _StudyPageState extends State<StudyPage> {
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
           child: SizedBox(
-            key: ValueKey(_showAnswer),
+            key: ValueKey(state.showAnswer),
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _showAnswer
-                  ? _nextQuestion
-                  : (_selectedAnswer != null ? _checkAnswer : null),
+              onPressed: state.showAnswer
+                  ? () => context.read<StudyBloc>().add(NextQuestion())
+                  : (state.selectedAnswer != null
+                      ? () => context.read<StudyBloc>().add(
+                            CheckAnswer(selectedAnswer: state.selectedAnswer),
+                          )
+                      : null),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.grey[800],
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -425,7 +366,7 @@ class _StudyPageState extends State<StudyPage> {
                 ),
               ),
               child: Text(
-                _showAnswer ? "Próxima" : "Verificar",
+                state.showAnswer ? "Próxima" : "Verificar",
                 style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
             ),
@@ -435,16 +376,18 @@ class _StudyPageState extends State<StudyPage> {
     );
   }
 
-  Widget _buildSelfAssessmentMode() {
+  Widget _buildSelfAssessmentMode(StudyInProgress state) {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
-      child: _showAnswer
+      child: state.showAnswer
           ? Row(
               key: const ValueKey('assessment'),
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => _selfAssess(false),
+                    onPressed: () => context.read<StudyBloc>().add(
+                          SelfAssess(correct: false),
+                        ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red[300],
                       padding: const EdgeInsets.symmetric(vertical: 20),
@@ -465,7 +408,9 @@ class _StudyPageState extends State<StudyPage> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => _selfAssess(true),
+                    onPressed: () => context.read<StudyBloc>().add(
+                          SelfAssess(correct: true),
+                        ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green[300],
                       padding: const EdgeInsets.symmetric(vertical: 20),
@@ -490,9 +435,7 @@ class _StudyPageState extends State<StudyPage> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  setState(() {
-                    _showAnswer = true;
-                  });
+                  context.read<StudyBloc>().add(ShowAnswer());
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.grey[300],
@@ -515,113 +458,100 @@ class _StudyPageState extends State<StudyPage> {
   }
 
   Widget _buildPauseModal() {
-    return Container(
-      color: Colors.black54,
-      child: Center(
-        child: Container(
-          margin: const EdgeInsets.all(24),
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                "Pausado",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _isPaused = false;
-                    });
-                  },
-                  icon: const Icon(Icons.play_arrow, color: Colors.white),
-                  label: const Text(
-                    "Continuar",
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[800],
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    // Reset everything
-                    setState(() {
-                      _currentIndex = 0;
-                      _showAnswer = false;
-                      _selectedAnswer = null;
-                      _answerController.clear();
-                      _correctAnswers = 0;
-                      _questionResults.clear();
-                      _shuffledQuestions.shuffle(Random());
-                      _prepareMultipleChoiceOptions();
-                      _isPaused = false;
-                    });
-                  },
-                  icon: const Icon(Icons.refresh, color: Colors.white),
-                  label: const Text(
-                    "Reiniciar",
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[800],
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  icon: const Icon(Icons.exit_to_app, color: Colors.white),
-                  label: const Text(
-                    "Sair",
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[800],
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+    return BlocBuilder<StudyBloc, StudyState>(
+      builder: (context, state) {
+        if (state is! StudyInProgress) return const SizedBox.shrink();
 
-  @override
-  void dispose() {
-    _answerController.dispose();
-    super.dispose();
+        return Container(
+          color: Colors.black54,
+          child: Center(
+            child: Container(
+              margin: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    "Pausado",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        context.read<StudyBloc>().add(ResumeStudy());
+                      },
+                      icon: const Icon(Icons.play_arrow, color: Colors.white),
+                      label: const Text(
+                        "Continuar",
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey[800],
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        context.read<StudyBloc>().add(RestartStudy());
+                      },
+                      icon: const Icon(Icons.refresh, color: Colors.white),
+                      label: const Text(
+                        "Reiniciar",
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey[800],
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      icon: const Icon(Icons.exit_to_app, color: Colors.white),
+                      label: const Text(
+                        "Sair",
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey[800],
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }

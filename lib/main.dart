@@ -1,6 +1,8 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flashcard_app/bloc/auth_bloc.dart';
 import 'package:flashcard_app/bloc/manager_bloc.dart';
+import 'package:flashcard_app/bloc/study_bloc.dart';
+import 'package:flashcard_app/bloc/user_bloc.dart';
 import 'package:flashcard_app/view/main_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -25,17 +27,19 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => AuthBloc(),
-      child: BlocProvider(
-        create: (context) => ManagerBloc(),
-        child: MaterialApp(
-          title: 'Flutter Demo',
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          ),
-          home: const MainPage(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (context) => AuthBloc()),
+        BlocProvider(create: (context) => ManagerBloc()),
+        BlocProvider(create: (context) => StudyBloc()),
+        BlocProvider(create: (context) => UserBloc()),
+      ],
+      child: MaterialApp(
+        title: 'Flutter Demo',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         ),
+        home: const MainPage(),
       ),
     );
   }

@@ -1,6 +1,8 @@
+import 'package:flashcard_app/bloc/user_bloc.dart';
 import 'package:flashcard_app/model/user.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
@@ -15,28 +17,43 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  late User _currentUser;
-
   @override
   void initState() {
     super.initState();
-    _currentUser = widget.user;
-  }
-
-  @override
-  void didUpdateWidget(ProfilePage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Atualiza o usuário quando o widget.user mudar (ex: após logout)
-    if (oldWidget.user != widget.user) {
-      _currentUser = widget.user;
+    // Inicializa o UserBloc com o usuário atual se ainda não estiver carregado
+    final userState = context.read<UserBloc>().state;
+    if (userState is UserInitial && !userState.user.isLoggedIn) {
+      // Se o usuário não está vazio no widget, atualiza o bloc
+      if (widget.user.isLoggedIn) {
+        context.read<UserBloc>().add(UpdateUserName(name: widget.user.name));
+        context.read<UserBloc>().add(UpdateUserEmail(email: widget.user.email));
+        context.read<UserBloc>().add(UpdateUserAge(age: widget.user.age));
+        if (widget.user.profilePicturePath != null) {
+          context.read<UserBloc>().add(
+                UpdateUserProfilePicture(
+                  imagePath: widget.user.profilePicturePath,
+                ),
+              );
+        }
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black87,
-      body: _currentUser.isLoggedIn
+    return BlocBuilder<UserBloc, UserState>(
+      builder: (context, userState) {
+        final currentUser = userState is UserInitial
+            ? userState.user
+            : userState is UserLoaded
+                ? userState.user
+                : userState is UserUpdated
+                    ? userState.user
+                    : widget.user;
+
+        return Scaffold(
+          backgroundColor: Colors.black87,
+          body: currentUser.isLoggedIn
           ? SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -57,11 +74,11 @@ class _ProfilePageState extends State<ProfilePage> {
                               shape: BoxShape.circle,
                               border: Border.all(color: Colors.white, width: 2),
                             ),
-                            child: _currentUser.profilePicturePath != null
+                            child: currentUser.profilePicturePath != null
                                 ? ClipOval(
                                     child: kIsWeb
                                         ? Image.network(
-                                            _currentUser.profilePicturePath!,
+                                            currentUser.profilePicturePath!,
                                             width: 100,
                                             height: 100,
                                             fit: BoxFit.cover,
@@ -76,7 +93,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                           )
                                         : Image.file(
                                             File(
-                                              _currentUser.profilePicturePath!,
+                                              currentUser.profilePicturePath!,
                                             ),
                                             width: 100,
                                             height: 100,
@@ -140,35 +157,29 @@ class _ProfilePageState extends State<ProfilePage> {
                         _buildEditableInfoRow(
                           Icons.person,
                           "Nome",
-                          _currentUser.name,
+                          currentUser.name,
                           (value) {
-                            setState(() {
-                              _currentUser.name = value;
-                            });
+                            context.read<UserBloc>().add(UpdateUserName(name: value));
                           },
                         ),
                         const SizedBox(height: 16),
                         _buildEditableInfoRow(
                           Icons.email,
                           "Email",
-                          _currentUser.email,
+                          currentUser.email,
                           (value) {
-                            setState(() {
-                              _currentUser.email = value;
-                            });
+                            context.read<UserBloc>().add(UpdateUserEmail(email: value));
                           },
                         ),
                         const SizedBox(height: 16),
                         _buildEditableInfoRow(
                           Icons.cake,
                           "Idade",
-                          "${_currentUser.age}",
+                          "${currentUser.age}",
                           (value) {
                             final age = int.tryParse(value);
                             if (age != null && age > 0) {
-                              setState(() {
-                                _currentUser.age = age;
-                              });
+                              context.read<UserBloc>().add(UpdateUserAge(age: age));
                             }
                           },
                         ),
@@ -218,6 +229,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 ],
               ),
             ),
+        );
+      },
     );
   }
 
@@ -341,7 +354,15 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _showImagePickerDialog() {
-    if (_currentUser.profilePicturePath != null) {
+    final userState = context.read<UserBloc>().state;
+    final currentUser = userState is UserInitial
+        ? userState.user
+        : userState is UserLoaded
+            ? userState.user
+            : userState is UserUpdated
+                ? userState.user
+                : widget.user;
+    if (currentUser.profilePicturePath != null) {
       // Se já tem foto, mostra opções de trocar ou remover
       showDialog(
         context: context,
@@ -373,9 +394,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   onTap: () {
                     Navigator.of(context).pop();
-                    setState(() {
-                      _currentUser.profilePicturePath = null;
-                    });
+                    context.read<UserBloc>().add(
+                          UpdateUserProfilePicture(imagePath: null),
+                        );
                   },
                 ),
               ],
@@ -399,9 +420,9 @@ class _ProfilePageState extends State<ProfilePage> {
     );
 
     if (image != null) {
-      setState(() {
-        _currentUser.profilePicturePath = image.path;
-      });
+      context.read<UserBloc>().add(
+            UpdateUserProfilePicture(imagePath: image.path),
+          );
     }
   }
 

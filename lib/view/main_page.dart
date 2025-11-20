@@ -1,6 +1,6 @@
 import 'package:flashcard_app/bloc/auth_bloc.dart';
-import 'package:flashcard_app/provider/firestore_user_provider.dart';
-import 'package:flashcard_app/provider/firestore_collection_provider.dart';
+import 'package:flashcard_app/bloc/manager_bloc.dart';
+import 'package:flashcard_app/bloc/user_bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flashcard_app/model/user.dart';
 import 'package:flashcard_app/model/collection.dart';
@@ -21,22 +21,14 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  User _user = User.empty();
-  List<Collection> _collections = [];
-
-  // Cache the future for the currently authenticated user's profile to avoid
-  // re-fetching every rebuild. Updated via BlocListener when auth changes.
-  Future<User?>? _userFuture;
-
   int _selectedIndex = 0;
-  String get name => _user.name;
 
-  Future<void> _addCollection(
+  void _addCollection(
     BuildContext context,
     String name,
     Color color, {
     String? imagePath,
-  }) async {
+  }) {
     final tempId = DateTime.now().millisecondsSinceEpoch.toString();
     final newCollection = Collection(
       id: tempId,
@@ -44,41 +36,10 @@ class _MainPageState extends State<MainPage> {
       color: color,
       flashcards: [],
       imagePath: imagePath,
+      createdAt: DateTime.now(),
     );
 
-    try {
-      final newId = await FirestoreCollectionProvider.helper.insertCollection(
-        newCollection,
-      );
-
-      final created = Collection(
-        id: newId,
-        name: newCollection.name,
-        color: newCollection.color,
-        flashcards: newCollection.flashcards,
-        imagePath: newCollection.imagePath,
-        createdAt: DateTime.now(),
-      );
-
-      setState(() {
-        _collections.add(created);
-      });
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao salvar coleção: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  void _deleteCollection(Collection collection) {
-    setState(() {
-      _collections.removeWhere((c) => c.id == collection.id);
-    });
+    context.read<ManagerBloc>().add(SubmitEvent(collection: newCollection));
   }
 
   void _showCollectionMenu(BuildContext context, Collection collection) {
@@ -148,7 +109,9 @@ class _MainPageState extends State<MainPage> {
               ),
               onPressed: () {
                 Navigator.of(context).pop();
-                _deleteCollection(collection);
+                context.read<ManagerBloc>().add(
+                  DeleteEvent(collectionId: collection.id),
+                );
               },
               child: const Text(
                 "Excluir",
@@ -170,7 +133,6 @@ class _MainPageState extends State<MainPage> {
     bool isColorMode = true;
     String? selectedImagePath = collection.imagePath;
     bool isImageMode = collection.imagePath != null;
-    final pageSetState = setState; // Capture the page's setState
 
     showDialog(
       context: context,
@@ -646,19 +608,17 @@ class _MainPageState extends State<MainPage> {
                           onPressed: () {
                             if (formKey.currentState!.validate()) {
                               Navigator.of(context).pop();
-                              // Update the collection using the page's setState
-                              pageSetState(() {
-                                final index = _collections.indexWhere(
-                                  (c) => c.id == collection.id,
-                                );
-                                if (index != -1) {
-                                  _collections[index].name =
-                                      nameController.text;
-                                  _collections[index].color = selectedColor;
-                                  _collections[index].imagePath =
-                                      selectedImagePath;
-                                }
-                              });
+                              final updatedCollection = Collection(
+                                id: collection.id,
+                                name: nameController.text,
+                                color: selectedColor,
+                                flashcards: collection.flashcards,
+                                imagePath: selectedImagePath,
+                                createdAt: collection.createdAt,
+                              );
+                              context.read<ManagerBloc>().add(
+                                SubmitEvent(collection: updatedCollection),
+                              );
                             }
                           },
                         ),
@@ -1154,12 +1114,12 @@ class _MainPageState extends State<MainPage> {
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          onPressed: () async {
+                          onPressed: () {
                             if (formKey.currentState!.validate()) {
                               final colorToSave = selectedColor;
                               final imagePathToSave = selectedImagePath;
                               Navigator.of(context).pop();
-                              await _addCollection(
+                              _addCollection(
                                 context,
                                 nameController.text,
                                 colorToSave,
@@ -1181,47 +1141,41 @@ class _MainPageState extends State<MainPage> {
   }
 
   void _showLoginDialog(BuildContext context) {
+    final userState = context.read<UserBloc>().state;
+    final user = userState is UserInitial
+        ? userState.user
+        : userState is UserLoaded
+        ? userState.user
+        : userState is UserUpdated
+        ? userState.user
+        : User.empty();
     showDialog(
       context: context,
-      builder: (_) => LoginDialog(user: _user),
+      builder: (_) => LoginDialog(user: user),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AuthBloc, AuthState>(
-      listener: (context, state) {
-        if (state is Authenticated) {
-          _userFuture = FirestoreUserProvider.helper.findUserByEmail(
-            state.username,
-          );
-          _userFuture
-              ?.then((user) {
-                if (mounted && user != null) {
-                  setState(() {
-                    _user = user;
-                  });
-                }
-              })
-              .catchError((error) {
-                // Se não encontrar o usuário, mantém vazio
-                if (mounted) {
-                  setState(() {
-                    _user = User.empty();
-                  });
-                }
-              });
-        } else {
-          _userFuture = null;
-          if (mounted) {
-            setState(() {
-              _user = User.empty();
-            });
-          }
-        }
-
-        if (mounted) setState(() {});
-      },
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<AuthBloc, AuthState>(
+          listener: (context, state) {
+            if (state is Authenticated) {
+              context.read<UserBloc>().add(LoadUser(email: state.username));
+            } else {
+              context.read<UserBloc>().add(ClearUser());
+            }
+          },
+        ),
+        BlocListener<ManagerBloc, ManagerState>(
+          listener: (context, state) {
+            if (state is InsertState && state.collectionList.isEmpty) {
+              // Pode mostrar mensagem se necessário
+            }
+          },
+        ),
+      ],
       child: Scaffold(
         appBar: AppBar(
           title: Column(
@@ -1231,21 +1185,21 @@ class _MainPageState extends State<MainPage> {
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white, fontSize: 25),
               ),
-              FutureBuilder<User?>(
-                future: _userFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const SizedBox.shrink();
-                  }
-
-                  final user = snapshot.data;
-                  if (user != null) {
+              BlocBuilder<UserBloc, UserState>(
+                builder: (context, userState) {
+                  final user = userState is UserInitial
+                      ? userState.user
+                      : userState is UserLoaded
+                      ? userState.user
+                      : userState is UserUpdated
+                      ? userState.user
+                      : User.empty();
+                  if (user.isLoggedIn) {
                     return Text(
                       'Olá, ${user.name}!',
                       style: const TextStyle(fontSize: 15, color: Colors.white),
                     );
                   }
-
                   return const SizedBox.shrink();
                 },
               ),
@@ -1290,8 +1244,8 @@ class _MainPageState extends State<MainPage> {
           children: [
             // Página Início (índice 0)
             BlocBuilder<AuthBloc, AuthState>(
-              builder: (context, state) {
-                final isAuthenticated = state is Authenticated;
+              builder: (context, authState) {
+                final isAuthenticated = authState is Authenticated;
                 if (!isAuthenticated) {
                   return Center(
                     child: Column(
@@ -1329,106 +1283,119 @@ class _MainPageState extends State<MainPage> {
                     ),
                   );
                 }
-                return _collections.isEmpty
-                    ? Stack(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(60.0),
-                            child: Center(
-                              child: Column(
-                                children: [
-                                  Image.asset(
-                                    'assets/images/sleepingCat.png',
-                                    width:
-                                        MediaQuery.of(context).size.width * 0.5,
-                                    height:
-                                        MediaQuery.of(context).size.height *
-                                        0.3,
-                                    fit: BoxFit.contain,
+                return BlocBuilder<ManagerBloc, ManagerState>(
+                  builder: (context, managerState) {
+                    final collections = managerState.collectionList;
+                    return collections.isEmpty
+                        ? Stack(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(60.0),
+                                child: Center(
+                                  child: Column(
+                                    children: [
+                                      Image.asset(
+                                        'assets/images/sleepingCat.png',
+                                        width:
+                                            MediaQuery.of(context).size.width *
+                                            0.5,
+                                        height:
+                                            MediaQuery.of(context).size.height *
+                                            0.3,
+                                        fit: BoxFit.contain,
+                                      ),
+                                      Text(
+                                        'Não há nada aqui, ainda...',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                    ],
                                   ),
-                                  Text(
-                                    'Não há nada aqui, ainda...',
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 65,
-                            right: 65,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                              child: const Text(
-                                'Crie sua primeira coleção!',
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 25,
-                            right: 75,
-                            child: Image.asset(
-                              'assets/images/arrowRight.png',
-                              height: 40,
-                              width: 40,
-                            ),
-                          ),
-                        ],
-                      )
-                    : Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8.0,
-                                vertical: 16.0,
-                              ),
-                              child: Text(
-                                'Suas Coleções',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: GridView.builder(
-                                gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 2,
-                                      crossAxisSpacing: 16,
-                                      mainAxisSpacing: 16,
-                                      childAspectRatio: 1.2,
+                              Positioned(
+                                bottom: 65,
+                                right: 65,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                  child: const Text(
+                                    'Crie sua primeira coleção!',
+                                    style: TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                itemCount: _collections.length,
-                                itemBuilder: (context, index) {
-                                  final collection = _collections[index];
-                                  return GestureDetector(
-                                    onTap: () async {
-                                      // Verificar autenticação antes de abrir detalhes
-                                      final authState = context
-                                          .read<AuthBloc>()
-                                          .state;
-                                      if (authState is! Authenticated) {
-                                        _showLoginDialog(context);
-                                        return;
-                                      }
-                                      final updatedCollection =
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                bottom: 25,
+                                right: 75,
+                                child: Image.asset(
+                                  'assets/images/arrowRight.png',
+                                  height: 40,
+                                  width: 40,
+                                ),
+                              ),
+                            ],
+                          )
+                        : Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8.0,
+                                    vertical: 16.0,
+                                  ),
+                                  child: Text(
+                                    'Suas Coleções',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: GridView.builder(
+                                    gridDelegate:
+                                        SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: 2,
+                                          crossAxisSpacing: 16,
+                                          mainAxisSpacing: 16,
+                                          childAspectRatio: 1.2,
+                                        ),
+                                    itemCount: collections.length,
+                                    itemBuilder: (context, index) {
+                                      final collection = collections[index];
+                                      return GestureDetector(
+                                        onTap: () async {
+                                          // Verificar autenticação antes de abrir detalhes
+                                          final authState = context
+                                              .read<AuthBloc>()
+                                              .state;
+                                          if (authState is! Authenticated) {
+                                            _showLoginDialog(context);
+                                            return;
+                                          }
+                                          final userState = context
+                                              .read<UserBloc>()
+                                              .state;
+                                          final user = userState is UserInitial
+                                              ? userState.user
+                                              : userState is UserLoaded
+                                              ? userState.user
+                                              : userState is UserUpdated
+                                              ? userState.user
+                                              : User.empty();
                                           await Navigator.push(
                                             context,
                                             PageRouteBuilder(
@@ -1439,7 +1406,7 @@ class _MainPageState extends State<MainPage> {
                                                     secondaryAnimation,
                                                   ) => CollectionDetailsPage(
                                                     collection: collection,
-                                                    user: _user,
+                                                    user: user,
                                                   ),
                                               transitionsBuilder:
                                                   (
@@ -1479,189 +1446,216 @@ class _MainPageState extends State<MainPage> {
                                                   ),
                                             ),
                                           );
-
-                                      if (updatedCollection != null &&
-                                          updatedCollection is Collection) {
-                                        setState(() {
-                                          final index = _collections.indexWhere(
-                                            (c) => c.id == updatedCollection.id,
-                                          );
-                                          if (index != -1) {
-                                            _collections[index] =
-                                                updatedCollection;
-                                          }
-                                        });
-                                      }
-                                    },
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: collection.color,
-                                        borderRadius: BorderRadius.circular(16),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(
-                                              0.2,
+                                        },
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: collection.color,
+                                            borderRadius: BorderRadius.circular(
+                                              16,
                                             ),
-                                            blurRadius: 8,
-                                            offset: Offset(0, 4),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Stack(
-                                        children: [
-                                          // Imagem de fundo se houver
-                                          if (collection.imagePath != null)
-                                            ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
-                                              child: kIsWeb
-                                                  ? Image.network(
-                                                      collection.imagePath!,
-                                                      width: double.infinity,
-                                                      height: double.infinity,
-                                                      fit: BoxFit.cover,
-                                                      errorBuilder:
-                                                          (
-                                                            context,
-                                                            error,
-                                                            stackTrace,
-                                                          ) {
-                                                            return Container(
-                                                              color: collection
-                                                                  .color,
-                                                            );
-                                                          },
-                                                    )
-                                                  : Image.file(
-                                                      File(
-                                                        collection.imagePath!,
-                                                      ),
-                                                      width: double.infinity,
-                                                      height: double.infinity,
-                                                      fit: BoxFit.cover,
-                                                      errorBuilder:
-                                                          (
-                                                            context,
-                                                            error,
-                                                            stackTrace,
-                                                          ) {
-                                                            return Container(
-                                                              color: collection
-                                                                  .color,
-                                                            );
-                                                          },
-                                                    ),
-                                            ),
-                                          // Overlay escuro para melhorar legibilidade do texto
-                                          Container(
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
-                                              gradient: LinearGradient(
-                                                begin: Alignment.topCenter,
-                                                end: Alignment.bottomCenter,
-                                                colors: [
-                                                  Colors.transparent,
-                                                  Colors.black.withOpacity(0.7),
-                                                ],
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(
+                                                  0.2,
+                                                ),
+                                                blurRadius: 8,
+                                                offset: Offset(0, 4),
                                               ),
-                                            ),
+                                            ],
                                           ),
-                                          // Botão de menu (três pontinhos)
-                                          Positioned(
-                                            top: 8,
-                                            right: 8,
-                                            child: GestureDetector(
-                                              onTap: () {
-                                                _showCollectionMenu(
-                                                  context,
-                                                  collection,
-                                                );
-                                              },
-                                              child: Container(
-                                                width: 32,
-                                                height: 32,
+                                          child: Stack(
+                                            children: [
+                                              // Imagem de fundo se houver
+                                              if (collection.imagePath != null)
+                                                ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
+                                                  child: kIsWeb
+                                                      ? Image.network(
+                                                          collection.imagePath!,
+                                                          width:
+                                                              double.infinity,
+                                                          height:
+                                                              double.infinity,
+                                                          fit: BoxFit.cover,
+                                                          errorBuilder:
+                                                              (
+                                                                context,
+                                                                error,
+                                                                stackTrace,
+                                                              ) {
+                                                                return Container(
+                                                                  color:
+                                                                      collection
+                                                                          .color,
+                                                                );
+                                                              },
+                                                        )
+                                                      : Image.file(
+                                                          File(
+                                                            collection
+                                                                .imagePath!,
+                                                          ),
+                                                          width:
+                                                              double.infinity,
+                                                          height:
+                                                              double.infinity,
+                                                          fit: BoxFit.cover,
+                                                          errorBuilder:
+                                                              (
+                                                                context,
+                                                                error,
+                                                                stackTrace,
+                                                              ) {
+                                                                return Container(
+                                                                  color:
+                                                                      collection
+                                                                          .color,
+                                                                );
+                                                              },
+                                                        ),
+                                                ),
+                                              // Overlay escuro para melhorar legibilidade do texto
+                                              Container(
                                                 decoration: BoxDecoration(
-                                                  color: Colors.black54,
-                                                  shape: BoxShape.circle,
-                                                ),
-                                                child: Icon(
-                                                  Icons.more_vert,
-                                                  color: Colors.white,
-                                                  size: 18,
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
+                                                  gradient: LinearGradient(
+                                                    begin: Alignment.topCenter,
+                                                    end: Alignment.bottomCenter,
+                                                    colors: [
+                                                      Colors.transparent,
+                                                      Colors.black.withOpacity(
+                                                        0.7,
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                          ),
-                                          // Conteúdo
-                                          Padding(
-                                            padding: const EdgeInsets.all(16.0),
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Text(
-                                                  collection.name,
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.bold,
+                                              // Botão de menu (três pontinhos)
+                                              Positioned(
+                                                top: 8,
+                                                right: 8,
+                                                child: GestureDetector(
+                                                  onTap: () {
+                                                    _showCollectionMenu(
+                                                      context,
+                                                      collection,
+                                                    );
+                                                  },
+                                                  child: Container(
+                                                    width: 32,
+                                                    height: 32,
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.black54,
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                    child: Icon(
+                                                      Icons.more_vert,
+                                                      color: Colors.white,
+                                                      size: 18,
+                                                    ),
                                                   ),
-                                                  maxLines: 2,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
                                                 ),
-                                                Row(
+                                              ),
+                                              // Conteúdo
+                                              Padding(
+                                                padding: const EdgeInsets.all(
+                                                  16.0,
+                                                ),
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
                                                   mainAxisAlignment:
                                                       MainAxisAlignment
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      '${collection.flashcardCount} flashcards',
+                                                      collection.name,
                                                       style: TextStyle(
-                                                        color: Colors.white
-                                                            .withOpacity(0.9),
-                                                        fontSize: 12,
+                                                        color: Colors.white,
+                                                        fontSize: 18,
+                                                        fontWeight:
+                                                            FontWeight.bold,
                                                       ),
+                                                      maxLines: 2,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
                                                     ),
-                                                    Icon(
-                                                      Icons.arrow_forward_ios,
-                                                      color: Colors.white
-                                                          .withOpacity(0.9),
-                                                      size: 16,
+                                                    Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .spaceBetween,
+                                                      children: [
+                                                        Text(
+                                                          '${collection.flashcardCount} flashcards',
+                                                          style: TextStyle(
+                                                            color: Colors.white
+                                                                .withOpacity(
+                                                                  0.9,
+                                                                ),
+                                                            fontSize: 12,
+                                                          ),
+                                                        ),
+                                                        Icon(
+                                                          Icons
+                                                              .arrow_forward_ios,
+                                                          color: Colors.white
+                                                              .withOpacity(0.9),
+                                                          size: 16,
+                                                        ),
+                                                      ],
                                                     ),
                                                   ],
                                                 ),
-                                              ],
-                                            ),
+                                              ),
+                                            ],
                                           ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      );
+                          );
+                  },
+                );
               },
             ),
             // Página Histórico (índice 1)
-            HistoryPage(user: _user),
+            BlocBuilder<UserBloc, UserState>(
+              builder: (context, userState) {
+                final user = userState is UserInitial
+                    ? userState.user
+                    : userState is UserLoaded
+                    ? userState.user
+                    : userState is UserUpdated
+                    ? userState.user
+                    : User.empty();
+                return HistoryPage(user: user);
+              },
+            ),
             // Página Perfil (índice 2)
-            ProfilePage(
-              user: _user,
-              onLogout: () {
-                context.read<AuthBloc>().add(Logout());
-                setState(() {
-                  _user = User.empty();
-                  _collections = []; // Limpa todas as coleções ao deslogar
-                  _selectedIndex = 0; // Volta para o início após deslogar
-                });
+            BlocBuilder<UserBloc, UserState>(
+              builder: (context, userState) {
+                final user = userState is UserInitial
+                    ? userState.user
+                    : userState is UserLoaded
+                    ? userState.user
+                    : userState is UserUpdated
+                    ? userState.user
+                    : User.empty();
+                return ProfilePage(
+                  user: user,
+                  onLogout: () {
+                    context.read<AuthBloc>().add(Logout());
+                    context.read<UserBloc>().add(ClearUser());
+                    setState(() {
+                      _selectedIndex = 0; // Volta para o início após deslogar
+                    });
+                  },
+                );
               },
             ),
           ],
