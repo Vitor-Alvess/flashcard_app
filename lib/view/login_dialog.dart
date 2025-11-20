@@ -36,7 +36,7 @@ class _LoginDialogState extends State<LoginDialog> {
               "Para criar uma coleção, você precisa fazer o login.",
               style: TextStyle(fontSize: 12),
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 15),
             SizedBox(
               height: 30,
               child: TextFormField(
@@ -70,7 +70,7 @@ class _LoginDialogState extends State<LoginDialog> {
                 },
               ),
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 15),
             SizedBox(
               height: 30,
               child: TextFormField(
