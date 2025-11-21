@@ -89,18 +89,32 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
   Future<void> _onAddHistory(AddHistory event, Emitter<HistoryState> emit) async {
     try {
       await FirestoreHistoryProvider.helper.insertHistory(event.history, event.userEmail);
-      // O stream irá atualizar automaticamente o estado
+      // Recarregar o histórico após adicionar
+      final histories = await FirestoreHistoryProvider.helper
+          .getHistoryByUserId(event.userEmail);
+      if (!isClosed) {
+        emit(HistoryLoaded(histories: histories));
+      }
     } catch (e) {
-      emit(HistoryError(message: e.toString()));
+      if (!isClosed) {
+        emit(HistoryError(message: e.toString()));
+      }
     }
   }
 
   Future<void> _onDeleteHistory(DeleteHistory event, Emitter<HistoryState> emit) async {
     try {
       await FirestoreHistoryProvider.helper.deleteHistory(event.historyId, event.userEmail);
-      // O stream irá atualizar automaticamente o estado
+      // Recarregar o histórico após deletar
+      final histories = await FirestoreHistoryProvider.helper
+          .getHistoryByUserId(event.userEmail);
+      if (!isClosed) {
+        emit(HistoryLoaded(histories: histories));
+      }
     } catch (e) {
-      emit(HistoryError(message: e.toString()));
+      if (!isClosed) {
+        emit(HistoryError(message: e.toString()));
+      }
     }
   }
 
