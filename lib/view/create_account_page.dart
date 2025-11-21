@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide User;
 import 'dart:async';
 import 'dart:io';
 
@@ -50,25 +51,22 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
 
       try {
         final authBloc = BlocProvider.of<AuthBloc>(context);
-        bool registrationSuccess = false;
+        final firebaseAuth = FirebaseAuth.instance;
         String? errorMessage;
+        bool registrationSuccess = false;
 
-        // Guarda o estado inicial para ignorar estados antigos
-        final initialState = authBloc.state;
-        bool registrationStarted = false;
-
+        // Cria um listener que processa estados após o registro
         StreamSubscription? subscription;
         final completer = Completer<bool>();
+        bool hasReceivedResponse = false;
+        final registrationEmail = widget.user.email;
 
         subscription = authBloc.stream.listen((authState) {
-          if (!registrationStarted) {
-            if (authState == initialState) {
-              return;
-            }
-            return;
-          }
+          // Só processa se ainda não recebeu uma resposta
+          if (hasReceivedResponse) return;
 
           if (authState is AuthError) {
+            hasReceivedResponse = true;
             final errorMsg = authState.message.toLowerCase();
 
             if (errorMsg.contains('email-already-in-use') ||
@@ -93,7 +91,9 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
               completer.complete(false);
             }
           } else if (authState is Authenticated) {
-            if (authState.username == widget.user.email) {
+            // Verifica se o email autenticado corresponde ao email do registro
+            if (authState.username == registrationEmail) {
+              hasReceivedResponse = true;
               registrationSuccess = true;
               if (!completer.isCompleted) {
                 completer.complete(true);
@@ -102,21 +102,28 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
           }
         });
 
-        registrationStarted = true;
-
+        // Dispara o evento de registro
         authBloc.add(
           RegisterUser(
-            username: widget.user.email,
+            username: registrationEmail,
             password: _passwordController.text.trim(),
           ),
         );
 
+        // Aguarda o resultado com timeout
         final result = await completer.future.timeout(
           const Duration(seconds: 5),
           onTimeout: () {
+            // Se deu timeout, verifica diretamente o Firebase Auth
+            final currentUser = firebaseAuth.currentUser;
+            if (currentUser != null && currentUser.email == registrationEmail) {
+              registrationSuccess = true;
+              return true;
+            }
+            // Também verifica o estado do BLoC
             final currentState = authBloc.state;
             if (currentState is Authenticated &&
-                currentState.username == widget.user.email) {
+                currentState.username == registrationEmail) {
               registrationSuccess = true;
               return true;
             }
@@ -126,7 +133,23 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
 
         await subscription.cancel();
 
-        if (!result || errorMessage != null) {
+        // Se ainda não teve sucesso, verifica diretamente o Firebase Auth
+        if (!registrationSuccess) {
+          await Future.delayed(const Duration(milliseconds: 500));
+          final currentUser = firebaseAuth.currentUser;
+          if (currentUser != null && currentUser.email == registrationEmail) {
+            registrationSuccess = true;
+          } else {
+            final currentState = authBloc.state;
+            if (currentState is Authenticated &&
+                currentState.username == registrationEmail) {
+              registrationSuccess = true;
+            }
+          }
+        }
+
+        // Verifica se houve erro ou se não foi bem-sucedido
+        if (!result || !registrationSuccess || errorMessage != null) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -138,24 +161,6 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
             );
           }
           return;
-        }
-
-        if (!registrationSuccess) {
-          final currentState = authBloc.state;
-          if (currentState is Authenticated &&
-              currentState.username == widget.user.email) {
-            registrationSuccess = true;
-          } else {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Erro ao criar conta. Tente novamente.'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-            return;
-          }
         }
 
         await FirestoreUserProvider.helper.insertUser(widget.user);

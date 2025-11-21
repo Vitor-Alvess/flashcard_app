@@ -19,7 +19,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           email: event.username,
           password: event.password,
         );
+        // O Firebase Auth automaticamente faz login após criar o usuário
+        // O authStateChanges() vai detectar isso e emitir Authenticated via AuthServerEvent
+        // Não precisamos emitir nada aqui, apenas aguardar o authStateChanges() processar
       } catch (e) {
+        // Verifica se é realmente um erro ou se o usuário foi criado
+        final currentUser = auth.currentUser;
+        if (currentUser != null && currentUser.email == event.username) {
+          // O usuário foi criado com sucesso, então não é um erro real
+          // O authStateChanges() vai emitir Authenticated
+          return;
+        }
+        // É um erro real, emite o erro
         emit(AuthError(message: e.toString()));
       }
     });
