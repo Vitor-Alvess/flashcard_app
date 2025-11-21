@@ -6,120 +6,54 @@ class FirestoreHistoryProvider {
   static FirestoreHistoryProvider helper = FirestoreHistoryProvider._();
   FirestoreHistoryProvider._();
 
-  final CollectionReference historyRoot = FirebaseFirestore.instance.collection(
-    'study_history',
-  );
+  final CollectionReference historyRoot = FirebaseFirestore.instance
+      .collection('users-collections');
 
-  String historyDocRef = 'histories';
+  CollectionReference _getHistoryCollection(String userEmail) =>
+      historyRoot.doc(userEmail).collection('history');
 
-  CollectionReference get _innerCollection =>
-      historyRoot.doc(historyDocRef).collection('histories');
-
-  Future<String> insertHistory(StudyHistory history) async {
+  Future<String> insertHistory(StudyHistory history, String userEmail) async {
     final map = history.toMap();
     map['completedAt'] = Timestamp.fromDate(history.completedAt);
-    final docRef = await _innerCollection.add(map);
+    final docRef = await _getHistoryCollection(userEmail).add(map);
     return docRef.id;
   }
 
-  Future<List<StudyHistory>> getHistoryByUserId(String userId) async {
-    try {
-      print('getHistoryByUserId called for userId: $userId');
-      print('Querying collection: ${_innerCollection.path}');
-      
-      // Add timeout to prevent hanging
-      final query = await _innerCollection
-          .where('userId', isEqualTo: userId)
-          .get()
-          .timeout(
-            const Duration(seconds: 10),
-            onTimeout: () {
-              print('Query timeout after 10 seconds');
-              throw TimeoutException('History query timed out');
-            },
-          );
+  Future<List<StudyHistory>> getHistoryByUserId(String userEmail) async {
+    final querySnapshot = await _getHistoryCollection(userEmail).get();
+    final histories = querySnapshot.docs.map((d) {
+      final data = _normalizeDocData(d.data());
+      final historyMap = Map<String, dynamic>.from(data);
+      historyMap['id'] = d.id;
+      return StudyHistory.fromMap(historyMap);
+    }).toList();
 
-      print('Query completed. Found ${query.docs.length} documents');
+    // Ordenar por completedAt em ordem decrescente
+    histories.sort((a, b) => b.completedAt.compareTo(a.completedAt));
 
-      if (query.docs.isEmpty) {
-        print('No history documents found for user: $userId');
-        return [];
-      }
-
-      final histories = query.docs.map((d) {
-        try {
-          final data = _normalizeDocData(d.data());
-          final historyMap = Map<String, dynamic>.from(data);
-          historyMap['id'] = d.id;
-          return StudyHistory.fromMap(historyMap);
-        } catch (e) {
-          print('Error parsing history document ${d.id}: $e');
-          return null;
-        }
-      }).whereType<StudyHistory>().toList();
-
-      // Ordenar por completedAt em ordem decrescente
-      histories.sort((a, b) => b.completedAt.compareTo(a.completedAt));
-
-      print('Returning ${histories.length} histories');
-      return histories;
-    } on TimeoutException catch (e) {
-      print('Timeout in getHistoryByUserId: $e');
-      return [];
-    } catch (e, stackTrace) {
-      print('Error in getHistoryByUserId: $e');
-      print('Stack trace: $stackTrace');
-      return [];
-    }
+    return histories;
   }
 
-  Stream<List<StudyHistory>> historyStream(String userId) {
-    try {
-      print('Creating historyStream for userId: $userId');
-      return _innerCollection
-          .where('userId', isEqualTo: userId)
-          .snapshots()
-          .map((snap) {
-            print('History stream snapshot received: ${snap.docs.length} docs');
-            try {
-              final histories = snap.docs
-                  .map((d) {
-                    try {
-                      final data = _normalizeDocData(d.data());
-                      final historyMap = Map<String, dynamic>.from(data);
-                      historyMap['id'] = d.id;
-                      return StudyHistory.fromMap(historyMap);
-                    } catch (e) {
-                      print('Error parsing history doc ${d.id}: $e');
-                      return null;
-                    }
-                  })
-                  .whereType<StudyHistory>()
-                  .toList();
+  Stream<List<StudyHistory>> historyStream(String userEmail) {
+    return _getHistoryCollection(userEmail)
+        .snapshots()
+        .map((snap) {
+          final histories = snap.docs.map((d) {
+            final data = _normalizeDocData(d.data());
+            final historyMap = Map<String, dynamic>.from(data);
+            historyMap['id'] = d.id;
+            return StudyHistory.fromMap(historyMap);
+          }).toList();
 
-              histories.sort((a, b) => b.completedAt.compareTo(a.completedAt));
-              print('Parsed ${histories.length} histories');
-              return histories;
-            } catch (e) {
-              print('Error processing snapshot: $e');
-              return <StudyHistory>[];
-            }
-          })
-          .handleError((error, stackTrace) {
-            print('Error in historyStream: $error');
-            print('Stack trace: $stackTrace');
-            // Re-throw para que o listener possa tratar
-            throw error;
-          });
-    } catch (e, stackTrace) {
-      print('Error creating historyStream: $e');
-      print('Stack trace: $stackTrace');
-      return Stream.value(<StudyHistory>[]);
-    }
+          // Ordenar por completedAt em ordem decrescente
+          histories.sort((a, b) => b.completedAt.compareTo(a.completedAt));
+
+          return histories;
+        });
   }
 
-  Future<void> deleteHistory(String id) async {
-    await _innerCollection.doc(id).delete();
+  Future<void> deleteHistory(String id, String userEmail) async {
+    await _getHistoryCollection(userEmail).doc(id).delete();
   }
 
   Map<String, dynamic> _normalizeDocData(Object? rawData) {

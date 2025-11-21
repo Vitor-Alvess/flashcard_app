@@ -58,7 +58,7 @@ class _StudyPageState extends State<StudyPage> {
                   userId: authState.username,
                   questionResults: state.questionResults,
                 );
-                context.read<HistoryBloc>().add(AddHistory(history: history));
+                context.read<HistoryBloc>().add(AddHistory(history: history, userEmail: authState.username));
               }
 
               Navigator.pushReplacement(

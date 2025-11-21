@@ -13,14 +13,16 @@ class LoadHistory extends HistoryEvent {
 
 class AddHistory extends HistoryEvent {
   final StudyHistory history;
+  final String userEmail;
 
-  AddHistory({required this.history});
+  AddHistory({required this.history, required this.userEmail});
 }
 
 class DeleteHistory extends HistoryEvent {
   final String historyId;
+  final String userEmail;
 
-  DeleteHistory({required this.historyId});
+  DeleteHistory({required this.historyId, required this.userEmail});
 }
 
 class ResetHistory extends HistoryEvent {}
@@ -86,7 +88,7 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
 
   Future<void> _onAddHistory(AddHistory event, Emitter<HistoryState> emit) async {
     try {
-      await FirestoreHistoryProvider.helper.insertHistory(event.history);
+      await FirestoreHistoryProvider.helper.insertHistory(event.history, event.userEmail);
       // O stream irá atualizar automaticamente o estado
     } catch (e) {
       emit(HistoryError(message: e.toString()));
@@ -95,7 +97,7 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
 
   Future<void> _onDeleteHistory(DeleteHistory event, Emitter<HistoryState> emit) async {
     try {
-      await FirestoreHistoryProvider.helper.deleteHistory(event.historyId);
+      await FirestoreHistoryProvider.helper.deleteHistory(event.historyId, event.userEmail);
       // O stream irá atualizar automaticamente o estado
     } catch (e) {
       emit(HistoryError(message: e.toString()));
