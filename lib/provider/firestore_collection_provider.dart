@@ -12,11 +12,27 @@ class FirestoreCollectionProvider {
     Collection collection,
     String userEmail,
   ) async {
+    if (collection.id.isNotEmpty) {
+      await collectionsRoot
+          .doc(userEmail)
+          .collection("collections")
+          .doc(collection.id)
+          .set(collection.toMap());
+      return collection.id;
+    }
     final docRef = await collectionsRoot
         .doc(userEmail)
         .collection("collections")
         .add(collection.toMap());
     return docRef.id;
+  }
+
+  Future<void> setCollection(String id, Collection collection, String userEmail) async {
+    await collectionsRoot
+        .doc(userEmail)
+        .collection("collections")
+        .doc(id)
+        .set(collection.toMap());
   }
 
   Future<List<Collection>> getAllCollections(String userEmail) async {
@@ -26,17 +42,28 @@ class FirestoreCollectionProvider {
         .get();
     return querySnapshot.docs.map((d) {
       final data = _normalizeDocData(d.data());
-      return Collection.fromMap(data);
+      final historyMap = Map<String, dynamic>.from(data);
+      historyMap['id'] = d.id;
+      return Collection.fromMap(historyMap);
     }).toList();
   }
 
-  Stream<List<Collection>> collectionsStream() {
-    return collectionsRoot.snapshots().map((snap) {
-      return snap.docs.map((d) {
-        final data = _normalizeDocData(d.data());
-        return Collection.fromMap(data);
-      }).toList();
-    });
+  Stream<List<Collection>> collectionsStream({String? userId}) {
+    if (userId != null && userId.isNotEmpty) {
+      return collectionsRoot
+          .doc(userId)
+          .collection('collections')
+          .snapshots()
+          .map((snap) {
+            return snap.docs.map((d) {
+              final data = _normalizeDocData(d.data());
+              final historyMap = Map<String, dynamic>.from(data);
+              historyMap['id'] = d.id;
+              return Collection.fromMap(historyMap);
+            }).toList();
+          });
+    }
+    return Stream.value(<Collection>[]);
   }
 
   /// Stream the collections for a specific user (by email or id used as doc)
@@ -51,6 +78,19 @@ class FirestoreCollectionProvider {
             return Collection.fromMap(data..['id'] = d.id);
           }).toList(),
         );
+  }
+
+  Future<Collection?> getCollectionById(String id, String userEmail) async {
+    final doc = await collectionsRoot
+        .doc(userEmail)
+        .collection("collections")
+        .doc(id)
+        .get();
+    if (!doc.exists) return null;
+    final data = _normalizeDocData(doc.data()!);
+    final historyMap = Map<String, dynamic>.from(data);
+    historyMap['id'] = doc.id;
+    return Collection.fromMap(historyMap);
   }
 
   Future<void> updateCollection(

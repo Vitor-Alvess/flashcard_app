@@ -7,36 +7,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class ManagerBloc extends Bloc<ManagerEvent, ManagerState> {
   StreamSubscription<List<Collection>>? _subscription;
-  StreamSubscription<User?>? _authSub;
 
   ManagerBloc() : super(InsertState(const [])) {
-    final FirebaseAuth auth = FirebaseAuth.instance;
-
-    _authSub = auth.authStateChanges().listen((user) {
-      _subscription?.cancel();
-      _subscription = null;
-
-      if (user == null) {
-        add(BackendEvent(collectionList: []));
-        return;
-      }
-
-      final email = user.email;
-      if (email != null && email.isNotEmpty) {
-        try {
-          _subscription = FirestoreCollectionProvider.helper
-              .collectionsStreamForUser(email)
-              .listen((list) => add(BackendEvent(collectionList: list)));
-        } catch (e, st) {
-          print(
-            'ManagerBloc: failed to subscribe to collectionsStreamForUser: $e\n$st',
-          );
-          _subscription = null;
-        }
-      } else {
-        add(BackendEvent(collectionList: []));
-      }
-    });
+    _updateSubscription(null);
 
     on<SubmitEvent>((event, emit) async {
       final userEmail = FirebaseAuth.instance.currentUser?.email;
@@ -79,12 +52,27 @@ class ManagerBloc extends Bloc<ManagerEvent, ManagerState> {
         userEmail,
       );
     });
+
+    on<SetUserIdEvent>((event, emit) {
+      _updateSubscription(event.userId);
+    });
+  }
+
+  void _updateSubscription(String? userId) {
+    _subscription?.cancel();
+    try {
+      _subscription = FirestoreCollectionProvider.helper
+          .collectionsStream(userId: userId)
+          .listen((list) => add(BackendEvent(collectionList: list)));
+    } catch (e, st) {
+      print('ManagerBloc: failed to subscribe to collectionsStream: $e\n$st');
+      _subscription = null;
+    }
   }
 
   @override
   Future<void> close() {
     _subscription?.cancel();
-    _authSub?.cancel();
     return super.close();
   }
 }
@@ -116,6 +104,11 @@ class DeleteEvent extends ManagerEvent {
 class ToggleUsefulEvent extends ManagerEvent {
   Collection collection;
   ToggleUsefulEvent({required this.collection});
+}
+
+class SetUserIdEvent extends ManagerEvent {
+  String? userId;
+  SetUserIdEvent({required this.userId});
 }
 
 abstract class ManagerState {

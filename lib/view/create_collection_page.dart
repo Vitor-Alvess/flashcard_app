@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flashcard_app/model/collection.dart';
 import 'package:flashcard_app/model/flashcard.dart';
 import 'package:flashcard_app/provider/firestore_collection_provider.dart';
+import 'package:flashcard_app/bloc/auth_bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class CreateCollectionPage extends StatefulWidget {
   final User user;
@@ -21,13 +23,11 @@ class _CreateCollectionPageState extends State<CreateCollectionPage> {
   bool _showColorPicker = false;
   bool _isSaving = false;
 
-  // Each entry holds a pair of controllers for question and answer
   final List<Map<String, TextEditingController>> _cardsControllers = [];
 
   @override
   void initState() {
     super.initState();
-    // start with one empty card
     _addCard();
   }
 
@@ -68,7 +68,15 @@ class _CreateCollectionPageState extends State<CreateCollectionPage> {
       final q = c['q']!.text.trim();
       final a = c['a']!.text.trim();
       if (q.isNotEmpty || a.isNotEmpty) {
-        flashcards.add(Flashcard(question: q, answer: a));
+        flashcards.add(
+          Flashcard(
+            id:
+                DateTime.now().millisecondsSinceEpoch.toString() +
+                flashcards.length.toString(),
+            question: q,
+            answer: a,
+          ),
+        );
       }
     }
 
@@ -87,13 +95,22 @@ class _CreateCollectionPageState extends State<CreateCollectionPage> {
     setState(() => _isSaving = true);
 
     try {
+      // Obter email do usuário logado
+      String? userId;
+      final authState = context.read<AuthBloc>().state;
+      if (authState is Authenticated) {
+        userId = authState.username;
+      }
+      
       final tempId = DateTime.now().millisecondsSinceEpoch.toString();
       final collection = Collection(
         id: tempId,
         name: title,
         color: _selectedColor,
+        imagePath: '',
         flashcards: flashcards,
         flashcardCount: flashcards.length,
+        userId: userId,
       );
 
       final newId = await FirestoreCollectionProvider.helper.insertCollection(
@@ -105,9 +122,11 @@ class _CreateCollectionPageState extends State<CreateCollectionPage> {
         id: newId,
         name: collection.name,
         color: collection.color,
+        imagePath: collection.imagePath,
         flashcards: collection.flashcards,
         flashcardCount: collection.flashcardCount,
         createdAt: DateTime.now(),
+        userId: collection.userId,
       );
 
       Navigator.of(context).pop(created);
@@ -210,7 +229,6 @@ class _CreateCollectionPageState extends State<CreateCollectionPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Color preview / picker toggle
                 GestureDetector(
                   onTap: () =>
                       setState(() => _showColorPicker = !_showColorPicker),
@@ -237,7 +255,6 @@ class _CreateCollectionPageState extends State<CreateCollectionPage> {
                 if (_showColorPicker) _buildColorPicker(),
                 const SizedBox(height: 12),
 
-                // Title
                 TextFormField(
                   controller: _titleController,
                   decoration: const InputDecoration(
@@ -252,7 +269,6 @@ class _CreateCollectionPageState extends State<CreateCollectionPage> {
                 ),
                 const SizedBox(height: 12),
 
-                // Flashcards list
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -302,7 +318,6 @@ class _CreateCollectionPageState extends State<CreateCollectionPage> {
                                                             OutlineInputBorder(),
                                                       ),
                                                   validator: (v) {
-                                                    // allow empty per-row, will be filtered on save
                                                     return null;
                                                   },
                                                 ),

@@ -2,6 +2,7 @@ class User {
   String _name;
   String _email;
   int _age;
+  String? _profilePicturePath;
 
   User.empty() : _name = '', _email = '', _age = 0;
 
@@ -11,11 +12,20 @@ class User {
       _age = age;
 
   factory User.fromMap(Map map) {
-    return User(name: map["name"], email: map["email"], age: map["age"]);
+    final user = User(name: map["name"], email: map["email"], age: map["age"]);
+    if (map["profilePicturePath"] != null) {
+      user.profilePicturePath = map["profilePicturePath"];
+    }
+    return user;
   }
 
-  toMap() {
-    return {"name": name, "email": email, "age": age};
+  dynamic toMap() {
+    return {
+      "name": name,
+      "email": email,
+      "age": age,
+      "profilePicturePath": profilePicturePath,
+    };
   }
 
   String get name {
@@ -40,6 +50,12 @@ class User {
 
   set age(int age) {
     _age = age;
+  }
+
+  String? get profilePicturePath => _profilePicturePath;
+
+  set profilePicturePath(String? path) {
+    _profilePicturePath = path;
   }
 
   bool get isLoggedIn {

@@ -10,8 +10,8 @@ class FirestoreUserProvider {
 
   String usersDocRef = "default";
 
-  dynamic insertUser(User user) {
-    userCollection.doc(usersDocRef).collection("users").add(user.toMap());
+  Future<void> insertUser(User user) async {
+    await userCollection.doc(usersDocRef).collection("users").add(user.toMap());
   }
 
   Future<User?> findUserByEmail(String email) async {

@@ -8,6 +8,8 @@ class Collection {
   DateTime _createdAt;
   int _flashcardCount;
   List<Flashcard> _flashcards;
+  String? _imagePath;
+  String? _userId;
 
   Collection({
     required String id,
@@ -16,19 +18,25 @@ class Collection {
     DateTime? createdAt,
     int flashcardCount = 0,
     required List<Flashcard> flashcards,
+    required String? imagePath,
+    String? userId,
   }) : _id = id,
        _name = name,
        _color = color,
        _createdAt = createdAt ?? DateTime.now(),
        _flashcardCount = flashcardCount,
-       _flashcards = flashcards;
+       _flashcards = flashcards,
+       _imagePath = imagePath,
+       _userId = userId;
 
   String get id => _id;
   String get name => _name;
   Color get color => _color;
   DateTime get createdAt => _createdAt;
-  int get flashcardCount => _flashcardCount;
   List<Flashcard> get flashcards => _flashcards;
+  int get flashcardCount => _flashcards.length;
+  String? get imagePath => _imagePath;
+  String? get userId => _userId;
 
   set name(String name) {
     _name = name;
@@ -38,8 +46,20 @@ class Collection {
     _color = color;
   }
 
-  set flashcardCount(int count) {
-    _flashcardCount = count;
+  set imagePath(String? path) {
+    _imagePath = path;
+  }
+
+  set userId(String? userId) {
+    _userId = userId;
+  }
+
+  void addQuestion(Flashcard question) {
+    _flashcards.add(question);
+  }
+
+  void removeQuestion(String questionId) {
+    _flashcards.removeWhere((q) => q.id == questionId);
   }
 
   Map<String, dynamic> toMap() {
@@ -48,46 +68,27 @@ class Collection {
       'name': _name,
       'color': _color.toARGB32(),
       'createdAt': _createdAt.toIso8601String(),
-      'flashcardCount': _flashcardCount,
-      'flashcards': _flashcards
-          .map((f) => {'question': f.question, 'answer': f.answer})
-          .toList(),
+      'flashcards': _flashcards.map((f) => f.toJson()).toList(),
+      'imagePath': _imagePath != null && _imagePath!.isNotEmpty
+          ? _imagePath
+          : null,
+      'userId': _userId,
     };
   }
 
   factory Collection.fromMap(Map<String, dynamic> map) {
-    final rawFlashcards = map['flashcards'];
-    List<Flashcard> parsedFlashcards = [];
-
-    if (rawFlashcards is List) {
-      for (final item in rawFlashcards) {
-        if (item is Map<String, dynamic>) {
-          parsedFlashcards.add(
-            Flashcard(
-              question: item['question'] ?? '',
-              answer: item['answer'] ?? '',
-            ),
-          );
-        } else if (item is Map) {
-          parsedFlashcards.add(
-            Flashcard(
-              question: item['question'] ?? '',
-              answer: item['answer'] ?? '',
-            ),
-          );
-        }
-      }
-    }
-
     return Collection(
       id: map['id'],
       name: map['name'],
       color: Color(map['color']),
-      createdAt: map['createdAt'] != null
-          ? DateTime.parse(map['createdAt'])
-          : DateTime.now(),
-      flashcardCount: map['flashcardCount'] ?? 0,
-      flashcards: parsedFlashcards,
+      createdAt: DateTime.parse(map['createdAt']),
+      flashcards:
+          (map['flashcards'] as List<dynamic>?)
+              ?.map((q) => Flashcard.fromJson(q as Map<String, dynamic>))
+              .toList() ??
+          [],
+      imagePath: map['imagePath'],
+      userId: map['userId'],
     );
   }
 }
