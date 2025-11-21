@@ -46,52 +46,64 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
       widget.user.name = _nameController.text.trim();
       widget.user.email = _emailController.text.trim();
       widget.user.age = int.tryParse(_ageController.text) ?? 0;
-      // Vincular foto de perfil à conta
       widget.user.profilePicturePath = _selectedImagePath;
 
       try {
-        // Primeiro registra no Firebase Auth diretamente para capturar erros
         final authBloc = BlocProvider.of<AuthBloc>(context);
         bool registrationSuccess = false;
         String? errorMessage;
-        
-        // Listener temporário para capturar erros e sucesso
+
+        // Guarda o estado inicial para ignorar estados antigos
+        final initialState = authBloc.state;
+        bool registrationStarted = false;
+
         StreamSubscription? subscription;
         final completer = Completer<bool>();
-        
+
         subscription = authBloc.stream.listen((authState) {
+          if (!registrationStarted) {
+            if (authState == initialState) {
+              return;
+            }
+            return;
+          }
+
           if (authState is AuthError) {
             final errorMsg = authState.message.toLowerCase();
-            
-            if (errorMsg.contains('email-already-in-use') || 
+
+            if (errorMsg.contains('email-already-in-use') ||
                 errorMsg.contains('email já está em uso')) {
               errorMessage = 'Este email já está em uso';
-            } else if (errorMsg.contains('invalid-email') || 
-                       errorMsg.contains('invalid_email') ||
-                       errorMsg.contains('email inválido') ||
-                       errorMsg.contains('invalid email')) {
+            } else if (errorMsg.contains('invalid-email') ||
+                errorMsg.contains('invalid_email') ||
+                errorMsg.contains('email inválido') ||
+                errorMsg.contains('invalid email')) {
               errorMessage = 'Email inválido';
-            } else if (errorMsg.contains('weak-password') || 
-                       errorMsg.contains('senha muito fraca')) {
+            } else if (errorMsg.contains('weak-password') ||
+                errorMsg.contains('senha muito fraca')) {
               errorMessage = 'Senha muito fraca';
-            } else if (errorMsg.contains('network') || 
-                       errorMsg.contains('rede')) {
+            } else if (errorMsg.contains('network') ||
+                errorMsg.contains('rede')) {
               errorMessage = 'Erro de conexão. Verifique sua internet.';
             } else {
               errorMessage = 'Erro ao criar conta. Tente novamente.';
             }
-            
+
             if (!completer.isCompleted) {
               completer.complete(false);
             }
           } else if (authState is Authenticated) {
-            registrationSuccess = true;
-            if (!completer.isCompleted) {
-              completer.complete(true);
+            if (authState.username == widget.user.email) {
+              registrationSuccess = true;
+              if (!completer.isCompleted) {
+                completer.complete(true);
+              }
             }
           }
         });
-        
+
+        registrationStarted = true;
+
         authBloc.add(
           RegisterUser(
             username: widget.user.email,
@@ -99,21 +111,28 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
           ),
         );
 
-        // Aguarda o resultado do Auth (timeout de 3 segundos)
         final result = await completer.future.timeout(
-          const Duration(seconds: 3),
-          onTimeout: () => false,
+          const Duration(seconds: 5),
+          onTimeout: () {
+            final currentState = authBloc.state;
+            if (currentState is Authenticated &&
+                currentState.username == widget.user.email) {
+              registrationSuccess = true;
+              return true;
+            }
+            return false;
+          },
         );
-        
-        // Cancela o listener
+
         await subscription.cancel();
-        
-        // Verifica se houve erro
+
         if (!result || errorMessage != null) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(errorMessage ?? 'Erro ao criar conta. Tente novamente.'),
+                content: Text(
+                  errorMessage ?? 'Erro ao criar conta. Tente novamente.',
+                ),
                 backgroundColor: Colors.red,
               ),
             );
@@ -121,32 +140,34 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
           return;
         }
 
-        // Verifica se o usuário foi autenticado com sucesso
         if (!registrationSuccess) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Erro ao criar conta. Tente novamente.'),
-                backgroundColor: Colors.red,
-              ),
-            );
+          final currentState = authBloc.state;
+          if (currentState is Authenticated &&
+              currentState.username == widget.user.email) {
+            registrationSuccess = true;
+          } else {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Erro ao criar conta. Tente novamente.'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+            return;
           }
-          return;
         }
-        
-        // Salva o usuário no Firestore
+
         await FirestoreUserProvider.helper.insertUser(widget.user);
 
-        // Aguarda um pouco para garantir que o usuário foi salvo
         await Future.delayed(const Duration(milliseconds: 500));
 
-        // Carrega o usuário no UserBloc
         if (mounted) {
           final authState = authBloc.state;
           if (authState is Authenticated) {
             context.read<UserBloc>().add(LoadUser(email: authState.username));
           }
-          
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Conta criada com sucesso!'),
@@ -159,8 +180,8 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
         if (mounted) {
           String errorMsg = 'Erro ao criar conta';
           final errorString = e.toString().toLowerCase();
-          
-          if (errorString.contains('invalid-email') || 
+
+          if (errorString.contains('invalid-email') ||
               errorString.contains('invalid_email') ||
               errorString.contains('invalid email')) {
             errorMsg = 'Email inválido';
@@ -169,12 +190,9 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
           } else if (errorString.contains('weak-password')) {
             errorMsg = 'Senha muito fraca';
           }
-          
+
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorMsg),
-              backgroundColor: Colors.red,
-            ),
+            SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
           );
         }
       }
